@@ -48,6 +48,7 @@ SquareType** grid;
 unsigned int numRows = 0;	//	height of the grid
 unsigned int numCols = 0;	//	width
 unsigned int numTravelers = 0;	//	initial number
+unsigned int movesToGrowNewSegment = 0;
 unsigned int numTravelersDone = 0;
 unsigned int numLiveThreads = 0;		//	the number of live traveler threads
 vector<Traveler> travelerList;
@@ -193,7 +194,7 @@ int main(int argc, char* argv[])
 	//	So far, I hard code-some values
 
 	// Checking arguments
-	if (argc != 4) {
+	if (argc != 5) {
 		perror("usage: invalid arguments");
 		exit(-1);
 	}
@@ -201,6 +202,7 @@ int main(int argc, char* argv[])
 	numRows = stoi(argv[2]);
 	numCols = stoi(argv[1]);
 	numTravelers = stoi(argv[3]);
+	movesToGrowNewSegment = stoi(argv[4]);
 	numLiveThreads = 0;
 	numTravelersDone = 0;
 
