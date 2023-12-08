@@ -191,9 +191,16 @@ int main(int argc, char* argv[])
 	//	to be the width (number of columns) and height (number of rows) of the
 	//	grid, the number of travelers, etc.
 	//	So far, I hard code-some values
-	numRows = 30;
-	numCols = 35;
-	numTravelers = 8;
+
+	// Checking arguments
+	if (argc != 4) {
+		perror("usage: invalid arguments");
+		exit(-1);
+	}
+
+	numRows = stoi(argv[2]);
+	numCols = stoi(argv[1]);
+	numTravelers = stoi(argv[3]);
 	numLiveThreads = 0;
 	numTravelersDone = 0;
 
