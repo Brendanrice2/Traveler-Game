@@ -15,7 +15,7 @@
 #include <cstdlib>
 #include <ctime>
 //
-#include "gl_frontEnd.h"
+#include "../Code/gl_frontEnd.h"
 
 //	feel free to "un-use" std if this is against your beliefs.
 using namespace std;
