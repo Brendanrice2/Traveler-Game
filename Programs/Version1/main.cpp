@@ -10,6 +10,7 @@
 #include <iostream>
 #include <string>
 #include <random>
+#include <thread>
 //
 #include <cstdio>
 #include <cstdlib>
@@ -33,6 +34,7 @@ Direction newDirection(Direction forbiddenDir = Direction::NUM_DIRECTIONS);
 TravelerSegment newTravelerSegment(const TravelerSegment& currentSeg, bool& canAdd);
 void generateWalls(void);
 void generatePartitions(void);
+void moveTraveler();
 
 #if 0
 //-----------------------------------------------------------------------------
@@ -222,6 +224,7 @@ int main(int argc, char* argv[])
 	//	we set up earlier will be called when the corresponding event
 	//	occurs
 	glutMainLoop();
+
 	
 	//	Free allocated resource before leaving (not absolutely needed, but
 	//	just nicer.  Also, if you crash there, you know something is wrong
@@ -326,6 +329,19 @@ void initializeApplication(void)
 	for (unsigned int k=0; k<numTravelers; k++)
 		delete []travelerColor[k];
 	delete []travelerColor;
+
+	moveTraveler();
+}
+
+void moveTraveler() {
+	// Get new direction
+	Direction headDir = travelerList[0].segmentList[0].dir;
+	Direction newDir = newDirection(headDir);
+
+	// while (true) {
+		// std::this_thread::sleep_for(std::chrono::seconds(2));
+		travelerList[0].segmentList[0].col += 1;
+	// }
 }
 
 
