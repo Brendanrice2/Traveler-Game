@@ -36,6 +36,7 @@ void generateWalls(void);
 void generatePartitions(void);
 void moveTraveler();
 bool boundsCheckMap(Direction newDir, int travelerIndex, int segmentIndex);
+void updateCurrentSegment(int &previousRow, int &previousCol, Direction &previousDir, Direction &newDir);
 
 #if 0
 //-----------------------------------------------------------------------------
@@ -54,6 +55,7 @@ unsigned int numTravelers = 0;	//	initial number
 unsigned int movesToGrowNewSegment = 0;
 unsigned int numTravelersDone = 0;
 unsigned int numLiveThreads = 0;		//	the number of live traveler threads
+const int headIndex = 0;
 vector<Traveler> travelerList;
 vector<SlidingPartition> partitionList;
 GridPosition	exitPos;	//	location of the exit
@@ -356,85 +358,22 @@ void moveTraveler() {
 
 		if(newDir == Direction::NORTH) {
 			if (boundsCheckMap(newDir, 0, 0)) { /**< Check if head will be out of bounds */
-				previousRow = travelerList[0].segmentList[0].row;	
-				previousCol = travelerList[0].segmentList[0].col;	
-				previousDir = travelerList[0].segmentList[0].dir;	
-				travelerList[0].segmentList[0].row -= 1;
-				travelerList[0].segmentList[0].dir = newDir;
-				for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
-					int tempRow = travelerList[0].segmentList[i].row;
-					int tempCol = travelerList[0].segmentList[i].col;
-					Direction tempDir = travelerList[0].segmentList[i].dir;
-					travelerList[0].segmentList[i].row = previousRow;
-					travelerList[0].segmentList[i].col = previousCol;
-					travelerList[0].segmentList[i].dir = previousDir;
-					previousRow = tempRow;
-					previousCol = tempCol;
-					previousDir = tempDir;
-				}
+				updateCurrentSegment(previousRow, previousCol, previousDir, newDir);
 			}
 		} 
 		else if(newDir == Direction::SOUTH) {
 			if (boundsCheckMap(newDir, 0, 0)) { /**< Check if head will be out of bounds */
-				previousCol = travelerList[0].segmentList[0].col;
-				previousRow = travelerList[0].segmentList[0].row;
-				previousDir = travelerList[0].segmentList[0].dir;
-				travelerList[0].segmentList[0].row += 1;
-				travelerList[0].segmentList[0].dir = newDir;
-				for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
-					int tempRow = travelerList[0].segmentList[i].row;
-					int tempCol = travelerList[0].segmentList[i].col;
-					Direction tempDir = travelerList[0].segmentList[i].dir;
-					travelerList[0].segmentList[i].row = previousRow;
-					travelerList[0].segmentList[i].col = previousCol;
-					travelerList[0].segmentList[i].dir = previousDir;
-					previousRow = tempRow;
-					previousCol = tempCol;
-					previousDir = tempDir;
-				}
+				updateCurrentSegment(previousRow, previousCol, previousDir, newDir);
 			}
 		} 
 		else if(newDir == Direction::EAST) {
 			if (boundsCheckMap(newDir, 0, 0)) { /**< Check if head will be out of bounds */
-				previousCol = travelerList[0].segmentList[0].col;
-				previousRow = travelerList[0].segmentList[0].row;
-				previousDir = travelerList[0].segmentList[0].dir;
-				travelerList[0].segmentList[0].col += 1;
-				travelerList[0].segmentList[0].dir = newDir;
-				for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
-					int tempRow = travelerList[0].segmentList[i].row;
-					int tempCol = travelerList[0].segmentList[i].col;
-					Direction tempDir = travelerList[0].segmentList[i].dir;
-					travelerList[0].segmentList[i].row = previousRow;
-					travelerList[0].segmentList[i].col = previousCol;
-					travelerList[0].segmentList[i].dir = previousDir;
-					previousRow = tempRow;
-					previousCol = tempCol;
-					previousDir = tempDir;
-				}
-				previousCol = travelerList[0].segmentList[0].col;
-				previousRow = travelerList[0].segmentList[0].row;
-				previousDir = travelerList[0].segmentList[0].dir;
+				updateCurrentSegment(previousRow, previousCol, previousDir, newDir);
 			}
 		} 
 		else if(newDir == Direction::WEST) {
 			if (boundsCheckMap(newDir, 0, 0)) { /**< Check if head will be out of bounds */
-				previousCol = travelerList[0].segmentList[0].col;
-				previousRow = travelerList[0].segmentList[0].row;
-				previousDir = travelerList[0].segmentList[0].dir;
-				travelerList[0].segmentList[0].col -= 1;
-				travelerList[0].segmentList[0].dir = newDir;
-				for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
-					int tempRow = travelerList[0].segmentList[i].row;
-					int tempCol = travelerList[0].segmentList[i].col;
-					Direction tempDir = travelerList[0].segmentList[i].dir;
-					travelerList[0].segmentList[i].row = previousRow;
-					travelerList[0].segmentList[i].col = previousCol;
-					travelerList[0].segmentList[i].dir = previousDir;
-					previousRow = tempRow;
-					previousCol = tempCol;
-					previousDir = tempDir;
-				}
+				updateCurrentSegment(previousRow, previousCol, previousDir, newDir);
 			}
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(200));
@@ -448,6 +387,37 @@ void moveTraveler() {
 	 * 3. Move the next segment to where the head was
 	 * 4. Repeat 2-3 until the traveler reaches the exit
 	*/
+}
+
+void getNewDirection(int travelerIndex) {
+	
+}
+
+void updateCurrentSegment(int &previousRow, int &previousCol, Direction &previousDir, Direction &newDir) {
+	previousRow = travelerList[0].segmentList[0].row;	
+	previousCol = travelerList[0].segmentList[0].col;	
+	previousDir = travelerList[0].segmentList[0].dir;
+	if (newDir == Direction::NORTH) {
+		travelerList[0].segmentList[0].row -= 1;
+	} else if (newDir == Direction::SOUTH) {
+		travelerList[0].segmentList[0].row += 1;
+	} else if (newDir == Direction::EAST) {
+		travelerList[0].segmentList[0].col += 1;
+	} else if (newDir == Direction::WEST) {
+		travelerList[0].segmentList[0].col -= 1;
+	}
+	travelerList[0].segmentList[0].dir = newDir;
+	for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
+		int tempRow = travelerList[0].segmentList[i].row;
+		int tempCol = travelerList[0].segmentList[i].col;
+		Direction tempDir = travelerList[0].segmentList[i].dir;
+		travelerList[0].segmentList[i].row = previousRow;
+		travelerList[0].segmentList[i].col = previousCol;
+		travelerList[0].segmentList[i].dir = previousDir;
+		previousRow = tempRow;
+		previousCol = tempCol;
+		previousDir = tempDir;
+	}
 }
 
 bool boundsCheckMap(Direction newDir, int travelerIndex, int segmentIndex) {
