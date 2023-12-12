@@ -35,6 +35,7 @@ TravelerSegment newTravelerSegment(const TravelerSegment& currentSeg, bool& canA
 void generateWalls(void);
 void generatePartitions(void);
 void moveTraveler();
+bool boundsCheckMap(Direction newDir, int travelerIndex, int segmentIndex);
 
 #if 0
 //-----------------------------------------------------------------------------
@@ -56,6 +57,7 @@ unsigned int numLiveThreads = 0;		//	the number of live traveler threads
 vector<Traveler> travelerList;
 vector<SlidingPartition> partitionList;
 GridPosition	exitPos;	//	location of the exit
+vector<thread> threads; /**< The vector to contain the thread ids */
 
 //	travelers' sleep time between moves (in microseconds)
 const int MIN_SLEEP_TIME = 1000;
@@ -235,6 +237,11 @@ int main(int argc, char* argv[])
 	for (int k=0; k<MAX_NUM_MESSAGES; k++)
 		delete []message[k];
 	delete []message;
+
+	/** Join all the threads */
+			for (auto& thread: threads) {
+				thread.join();
+			}
 	
 	//	This will probably never be executed (the exit point will be in one of the
 	//	call back functions).
@@ -330,65 +337,72 @@ void initializeApplication(void)
 		delete []travelerColor[k];
 	delete []travelerColor;
 
-	moveTraveler();
+	threads.push_back(thread(moveTraveler));
 }
 
 void moveTraveler() {
 	// Get new direction
 	Direction headDir = travelerList[0].segmentList[0].dir;
-	cout << travelerList[0].segmentList[0].row <<" ," << travelerList[0].segmentList[0].col << endl;
-	
-	Direction newDir = newDirection(headDir);
-	int previous;	//prevoius row / col
-	
-	bool exitFound = false;
-	
-	while(!exitFound) {
-		if(newDir == Direction::NORTH) {
-			previous = travelerList[0].segmentList[0].row;	
-			travelerList[0].segmentList[0].row += 1;
-			for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
-				int temp = travelerList[0].segmentList[i].row;
-				travelerList[0].segmentList[i].row = previous;
-				previous = temp;
-			}
+	cout << travelerList[0].segmentList[0].row <<", " << travelerList[0].segmentList[0].col << endl;
 
+	bool exitFound = false;
+	int previous; //previous row / col
+	Direction newDir;
+
+	while(!exitFound) {
+		newDir = newDirection(headDir);
+
+		if(newDir == Direction::NORTH) {
+			if (boundsCheckMap(newDir, 0, 0)) { /**< Check if head will be out of bounds */
+				previous = travelerList[0].segmentList[0].row;	
+				travelerList[0].segmentList[0].row -= 1;
+				for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
+					int temp = travelerList[0].segmentList[i].row;
+					travelerList[0].segmentList[i].row = previous;
+					previous = temp;
+					std::this_thread::sleep_for(std::chrono::milliseconds(100));
+				}
+			}
 		} 
 		else if(newDir == Direction::SOUTH) {
-			previous = travelerList[0].segmentList[0].row;
-			travelerList[0].segmentList[0].row -= 1;
-			for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
-				int temp = travelerList[0].segmentList[i].row;
-				travelerList[0].segmentList[i].row = previous;
-				previous = temp;
+			if (boundsCheckMap(newDir, 0, 0)) { /**< Check if head will be out of bounds */
+				previous = travelerList[0].segmentList[0].row;
+				travelerList[0].segmentList[0].row += 1;
+				for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
+					int temp = travelerList[0].segmentList[i].row;
+					travelerList[0].segmentList[i].row = previous;
+					previous = temp;
+					std::this_thread::sleep_for(std::chrono::milliseconds(100));
+				}
 			}
 		} 
 		else if(newDir == Direction::EAST) {
-			previous = travelerList[0].segmentList[0].col;
-			travelerList[0].segmentList[0].col -= 1;
-			for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
-				int temp = travelerList[0].segmentList[i].col;
-				travelerList[0].segmentList[i].col = previous;
-				previous = temp;
+			if (boundsCheckMap(newDir, 0, 0)) { /**< Check if head will be out of bounds */
+				previous = travelerList[0].segmentList[0].col;
+				travelerList[0].segmentList[0].col += 1;
+				for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
+					int temp = travelerList[0].segmentList[i].col;
+					travelerList[0].segmentList[i].col = previous;
+					previous = temp;
+					std::this_thread::sleep_for(std::chrono::milliseconds(100));
+				}
 			}
 		} 
 		else if(newDir == Direction::WEST) {
-			previous = travelerList[0].segmentList[0].col;
-			travelerList[0].segmentList[0].col += 1;
-			for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
-				int temp = travelerList[0].segmentList[i].col;
-				travelerList[0].segmentList[i].col = previous;
-				previous = temp;
+			if (boundsCheckMap(newDir, 0, 0)) { /**< Check if head will be out of bounds */
+				previous = travelerList[0].segmentList[0].col;
+				travelerList[0].segmentList[0].col -= 1;
+				for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
+					int temp = travelerList[0].segmentList[i].col;
+					travelerList[0].segmentList[i].col = previous;
+					previous = temp;
+					std::this_thread::sleep_for(std::chrono::milliseconds(100));
+				}
 			}
 		}
-
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		cout << travelerList[0].segmentList[0].row <<", " << travelerList[0].segmentList[0].col << endl;
 	}
-	cout << travelerList[0].segmentList[0].row <<" ," << travelerList[0].segmentList[0].col << endl;
-
-	// while (true) {
-		// std::this_thread::sleep_for(std::chrono::seconds(2));
-		travelerList[0].segmentList[0].col += 1;
-	// }
 
 	/**
 	 * Breakdown to move traveler:
@@ -397,6 +411,35 @@ void moveTraveler() {
 	 * 3. Move the next segment to where the head was
 	 * 4. Repeat 2-3 until the traveler reaches the exit
 	*/
+}
+
+bool boundsCheckMap(Direction newDir, int travelerIndex, int segmentIndex) {
+	if (newDir == Direction::NORTH) {
+		if (travelerList[travelerIndex].segmentList[segmentIndex].row > 0) {
+			return true;
+		} else {
+			return false;
+		}
+	} else if (newDir == Direction::SOUTH) {
+		if (travelerList[travelerIndex].segmentList[segmentIndex].row + 1 < numRows) {
+			return true;
+		} else {
+			return false;
+		}
+	} else if (newDir == Direction::EAST) {
+		if (travelerList[travelerIndex].segmentList[segmentIndex].col + 1 < numCols) {
+			return true;
+		} else {
+			return false;
+		}
+	} else {
+		// WEST
+		if (travelerList[travelerIndex].segmentList[segmentIndex].col > 0) {
+			return true;
+		} else {
+			return false;
+		}
+	}
 }
 
 
