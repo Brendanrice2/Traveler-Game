@@ -36,6 +36,7 @@ void generateWalls(void);
 void generatePartitions(void);
 void moveTraveler();
 bool boundsCheckMap(Direction newDir, int travelerIndex, int segmentIndex);
+bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex);
 
 #if 0
 //-----------------------------------------------------------------------------
@@ -356,84 +357,92 @@ void moveTraveler() {
 
 		if(newDir == Direction::NORTH) {
 			if (boundsCheckMap(newDir, 0, 0)) { /**< Check if head will be out of bounds */
-				previousRow = travelerList[0].segmentList[0].row;	
-				previousCol = travelerList[0].segmentList[0].col;	
-				previousDir = travelerList[0].segmentList[0].dir;	
-				travelerList[0].segmentList[0].row -= 1;
-				travelerList[0].segmentList[0].dir = newDir;
-				for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
-					int tempRow = travelerList[0].segmentList[i].row;
-					int tempCol = travelerList[0].segmentList[i].col;
-					Direction tempDir = travelerList[0].segmentList[i].dir;
-					travelerList[0].segmentList[i].row = previousRow;
-					travelerList[0].segmentList[i].col = previousCol;
-					travelerList[0].segmentList[i].dir = previousDir;
-					previousRow = tempRow;
-					previousCol = tempCol;
-					previousDir = tempDir;
+				if (boundsCheckObstacles(newDir, 0, 0)){
+					previousRow = travelerList[0].segmentList[0].row;	
+					previousCol = travelerList[0].segmentList[0].col;	
+					previousDir = travelerList[0].segmentList[0].dir;	
+					travelerList[0].segmentList[0].row -= 1;
+					travelerList[0].segmentList[0].dir = newDir;
+					for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
+						int tempRow = travelerList[0].segmentList[i].row;
+						int tempCol = travelerList[0].segmentList[i].col;
+						Direction tempDir = travelerList[0].segmentList[i].dir;
+						travelerList[0].segmentList[i].row = previousRow;
+						travelerList[0].segmentList[i].col = previousCol;
+						travelerList[0].segmentList[i].dir = previousDir;
+						previousRow = tempRow;
+						previousCol = tempCol;
+						previousDir = tempDir;
+					}
 				}
 			}
 		} 
 		else if(newDir == Direction::SOUTH) {
 			if (boundsCheckMap(newDir, 0, 0)) { /**< Check if head will be out of bounds */
-				previousCol = travelerList[0].segmentList[0].col;
-				previousRow = travelerList[0].segmentList[0].row;
-				previousDir = travelerList[0].segmentList[0].dir;
-				travelerList[0].segmentList[0].row += 1;
-				travelerList[0].segmentList[0].dir = newDir;
-				for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
-					int tempRow = travelerList[0].segmentList[i].row;
-					int tempCol = travelerList[0].segmentList[i].col;
-					Direction tempDir = travelerList[0].segmentList[i].dir;
-					travelerList[0].segmentList[i].row = previousRow;
-					travelerList[0].segmentList[i].col = previousCol;
-					travelerList[0].segmentList[i].dir = previousDir;
-					previousRow = tempRow;
-					previousCol = tempCol;
-					previousDir = tempDir;
+				if (boundsCheckObstacles(newDir, 0, 0)){
+					previousCol = travelerList[0].segmentList[0].col;
+					previousRow = travelerList[0].segmentList[0].row;
+					previousDir = travelerList[0].segmentList[0].dir;
+					travelerList[0].segmentList[0].row += 1;
+					travelerList[0].segmentList[0].dir = newDir;
+					for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
+						int tempRow = travelerList[0].segmentList[i].row;
+						int tempCol = travelerList[0].segmentList[i].col;
+						Direction tempDir = travelerList[0].segmentList[i].dir;
+						travelerList[0].segmentList[i].row = previousRow;
+						travelerList[0].segmentList[i].col = previousCol;
+						travelerList[0].segmentList[i].dir = previousDir;
+						previousRow = tempRow;
+						previousCol = tempCol;
+						previousDir = tempDir;
+					}
 				}
 			}
 		} 
 		else if(newDir == Direction::EAST) {
 			if (boundsCheckMap(newDir, 0, 0)) { /**< Check if head will be out of bounds */
-				previousCol = travelerList[0].segmentList[0].col;
-				previousRow = travelerList[0].segmentList[0].row;
-				previousDir = travelerList[0].segmentList[0].dir;
-				travelerList[0].segmentList[0].col += 1;
-				travelerList[0].segmentList[0].dir = newDir;
-				for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
-					int tempRow = travelerList[0].segmentList[i].row;
-					int tempCol = travelerList[0].segmentList[i].col;
-					Direction tempDir = travelerList[0].segmentList[i].dir;
-					travelerList[0].segmentList[i].row = previousRow;
-					travelerList[0].segmentList[i].col = previousCol;
-					travelerList[0].segmentList[i].dir = previousDir;
-					previousRow = tempRow;
-					previousCol = tempCol;
-					previousDir = tempDir;
+				if (boundsCheckObstacles(newDir, 0, 0)){
+					previousCol = travelerList[0].segmentList[0].col;
+					previousRow = travelerList[0].segmentList[0].row;
+					previousDir = travelerList[0].segmentList[0].dir;
+					travelerList[0].segmentList[0].col += 1;
+					travelerList[0].segmentList[0].dir = newDir;
+					for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
+						int tempRow = travelerList[0].segmentList[i].row;
+						int tempCol = travelerList[0].segmentList[i].col;
+						Direction tempDir = travelerList[0].segmentList[i].dir;
+						travelerList[0].segmentList[i].row = previousRow;
+						travelerList[0].segmentList[i].col = previousCol;
+						travelerList[0].segmentList[i].dir = previousDir;
+						previousRow = tempRow;
+						previousCol = tempCol;
+						previousDir = tempDir;
+					}
+					previousCol = travelerList[0].segmentList[0].col;
+					previousRow = travelerList[0].segmentList[0].row;
+					previousDir = travelerList[0].segmentList[0].dir;
 				}
-				previousCol = travelerList[0].segmentList[0].col;
-				previousRow = travelerList[0].segmentList[0].row;
-				previousDir = travelerList[0].segmentList[0].dir;
 			}
 		} 
 		else if(newDir == Direction::WEST) {
 			if (boundsCheckMap(newDir, 0, 0)) { /**< Check if head will be out of bounds */
-				previousCol = travelerList[0].segmentList[0].col;
-				previousRow = travelerList[0].segmentList[0].row;
-				previousDir = travelerList[0].segmentList[0].dir;
-				travelerList[0].segmentList[0].col -= 1;
-				travelerList[0].segmentList[0].dir = newDir;
-				for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
-					int tempRow = travelerList[0].segmentList[i].row;
-					int tempCol = travelerList[0].segmentList[i].col;
-					Direction tempDir = travelerList[0].segmentList[i].dir;
-					travelerList[0].segmentList[i].row = previousRow;
-					travelerList[0].segmentList[i].col = previousCol;
-					travelerList[0].segmentList[i].dir = previousDir;
-					previousRow = tempRow;
-					previousCol = tempCol;
-					previousDir = tempDir;
+				if (boundsCheckObstacles(newDir, 0, 0)){
+					previousCol = travelerList[0].segmentList[0].col;
+					previousRow = travelerList[0].segmentList[0].row;
+					previousDir = travelerList[0].segmentList[0].dir;
+					travelerList[0].segmentList[0].col -= 1;
+					travelerList[0].segmentList[0].dir = newDir;
+					for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
+						int tempRow = travelerList[0].segmentList[i].row;
+						int tempCol = travelerList[0].segmentList[i].col;
+						Direction tempDir = travelerList[0].segmentList[i].dir;
+						travelerList[0].segmentList[i].row = previousRow;
+						travelerList[0].segmentList[i].col = previousCol;
+						travelerList[0].segmentList[i].dir = previousDir;
+						previousRow = tempRow;
+						previousCol = tempCol;
+						previousDir = tempDir;
+					}
 				}
 			}
 		}
@@ -479,6 +488,34 @@ bool boundsCheckMap(Direction newDir, int travelerIndex, int segmentIndex) {
 	}
 }
 
+bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex){
+
+	if (newDir == Direction::NORTH) {
+		if (grid[travelerList[travelerIndex].segmentList[segmentIndex].row - 1][travelerList[travelerIndex].segmentList[segmentIndex].col] == SquareType::FREE_SQUARE) {
+			return true;
+		} else {
+			return false;
+		}
+	} else if (newDir == Direction::SOUTH) {
+		if (grid[travelerList[travelerIndex].segmentList[segmentIndex].row + 1][travelerList[travelerIndex].segmentList[segmentIndex].col] == SquareType::FREE_SQUARE) {
+			return true;
+		} else {
+			return false;
+		}
+	} else if (newDir == Direction::EAST) {
+		if (grid[travelerList[travelerIndex].segmentList[segmentIndex].row][travelerList[travelerIndex].segmentList[segmentIndex].col + 1] == SquareType::FREE_SQUARE) {
+			return true;
+		} else {
+			return false;
+		}
+	} else {
+		if (grid[travelerList[travelerIndex].segmentList[segmentIndex].row][travelerList[travelerIndex].segmentList[segmentIndex].col - 1] == SquareType::FREE_SQUARE) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+}
 
 //------------------------------------------------------
 #if 0
