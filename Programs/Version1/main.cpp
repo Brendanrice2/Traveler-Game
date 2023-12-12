@@ -239,9 +239,9 @@ int main(int argc, char* argv[])
 	delete []message;
 
 	/** Join all the threads */
-			for (auto& thread: threads) {
-				thread.join();
-			}
+	for (auto& thread: threads) {
+		thread.join();
+	}
 	
 	//	This will probably never be executed (the exit point will be in one of the
 	//	call back functions).
@@ -346,7 +346,8 @@ void moveTraveler() {
 	cout << travelerList[0].segmentList[0].row <<", " << travelerList[0].segmentList[0].col << endl;
 
 	bool exitFound = false;
-	int previous; //previous row / col
+	int previousRowCol; //previous row / col
+	Direction previousDir;
 	Direction newDir;
 
 	while(!exitFound) {
@@ -354,49 +355,58 @@ void moveTraveler() {
 
 		if(newDir == Direction::NORTH) {
 			if (boundsCheckMap(newDir, 0, 0)) { /**< Check if head will be out of bounds */
-				previous = travelerList[0].segmentList[0].row;	
+				previousRowCol = travelerList[0].segmentList[0].row;	
+				previousDir = travelerList[0].segmentList[0].dir;	
 				travelerList[0].segmentList[0].row -= 1;
 				for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
-					int temp = travelerList[0].segmentList[i].row;
-					travelerList[0].segmentList[i].row = previous;
-					previous = temp;
-					std::this_thread::sleep_for(std::chrono::milliseconds(100));
+					int tempRow = travelerList[0].segmentList[i].row;
+					Direction tempDir = travelerList[0].segmentList[i].dir;
+					travelerList[0].segmentList[i].row = previousRowCol;
+					travelerList[0].segmentList[i].dir = previousDir;
+					previousRowCol = tempRow;
+					previousDir = tempDir;
 				}
 			}
 		} 
 		else if(newDir == Direction::SOUTH) {
 			if (boundsCheckMap(newDir, 0, 0)) { /**< Check if head will be out of bounds */
-				previous = travelerList[0].segmentList[0].row;
+				previousRowCol = travelerList[0].segmentList[0].row;
+				previousDir = travelerList[0].segmentList[0].dir;
 				travelerList[0].segmentList[0].row += 1;
 				for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
-					int temp = travelerList[0].segmentList[i].row;
-					travelerList[0].segmentList[i].row = previous;
-					previous = temp;
-					std::this_thread::sleep_for(std::chrono::milliseconds(100));
+					int tempRow = travelerList[0].segmentList[i].row;
+					Direction tempDir = travelerList[0].segmentList[i].dir;
+					travelerList[0].segmentList[i].row = previousRowCol;
+					previousRowCol = tempRow;
+					previousDir = tempDir;
 				}
 			}
 		} 
 		else if(newDir == Direction::EAST) {
 			if (boundsCheckMap(newDir, 0, 0)) { /**< Check if head will be out of bounds */
-				previous = travelerList[0].segmentList[0].col;
+				previousRowCol = travelerList[0].segmentList[0].col;
+				previousDir = travelerList[0].segmentList[0].dir;
 				travelerList[0].segmentList[0].col += 1;
 				for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
-					int temp = travelerList[0].segmentList[i].col;
-					travelerList[0].segmentList[i].col = previous;
-					previous = temp;
-					std::this_thread::sleep_for(std::chrono::milliseconds(100));
+					int tempCol = travelerList[0].segmentList[i].col;
+					Direction tempDir = travelerList[0].segmentList[i].dir;
+					travelerList[0].segmentList[i].col = previousRowCol;
+					previousRowCol = tempCol;
+					previousDir = tempDir;
 				}
 			}
 		} 
 		else if(newDir == Direction::WEST) {
 			if (boundsCheckMap(newDir, 0, 0)) { /**< Check if head will be out of bounds */
-				previous = travelerList[0].segmentList[0].col;
+				previousRowCol = travelerList[0].segmentList[0].col;
+				previousDir = travelerList[0].segmentList[0].dir;
 				travelerList[0].segmentList[0].col -= 1;
 				for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
-					int temp = travelerList[0].segmentList[i].col;
-					travelerList[0].segmentList[i].col = previous;
-					previous = temp;
-					std::this_thread::sleep_for(std::chrono::milliseconds(100));
+					int tempCol = travelerList[0].segmentList[i].col;
+					Direction tempDir = travelerList[0].segmentList[i].dir;
+					travelerList[0].segmentList[i].col = previousRowCol;
+					previousRowCol = tempCol;
+					previousDir = tempDir;
 				}
 			}
 		}
