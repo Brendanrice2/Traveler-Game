@@ -336,12 +336,67 @@ void initializeApplication(void)
 void moveTraveler() {
 	// Get new direction
 	Direction headDir = travelerList[0].segmentList[0].dir;
+	cout << travelerList[0].segmentList[0].row <<" ," << travelerList[0].segmentList[0].col << endl;
+	
 	Direction newDir = newDirection(headDir);
+	int previous;	//prevoius row / col
+	
+	bool exitFound = false;
+	
+	while(!exitFound) {
+		if(newDir == Direction::NORTH) {
+			previous = travelerList[0].segmentList[0].row;	
+			travelerList[0].segmentList[0].row += 1;
+			for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
+				int temp = travelerList[0].segmentList[i].row;
+				travelerList[0].segmentList[i].row = previous;
+				previous = temp;
+			}
+
+		} 
+		else if(newDir == Direction::SOUTH) {
+			previous = travelerList[0].segmentList[0].row;
+			travelerList[0].segmentList[0].row -= 1;
+			for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
+				int temp = travelerList[0].segmentList[i].row;
+				travelerList[0].segmentList[i].row = previous;
+				previous = temp;
+			}
+		} 
+		else if(newDir == Direction::EAST) {
+			previous = travelerList[0].segmentList[0].col;
+			travelerList[0].segmentList[0].col -= 1;
+			for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
+				int temp = travelerList[0].segmentList[i].col;
+				travelerList[0].segmentList[i].col = previous;
+				previous = temp;
+			}
+		} 
+		else if(newDir == Direction::WEST) {
+			previous = travelerList[0].segmentList[0].col;
+			travelerList[0].segmentList[0].col += 1;
+			for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
+				int temp = travelerList[0].segmentList[i].col;
+				travelerList[0].segmentList[i].col = previous;
+				previous = temp;
+			}
+		}
+
+	}
+	cout << travelerList[0].segmentList[0].row <<" ," << travelerList[0].segmentList[0].col << endl;
 
 	// while (true) {
 		// std::this_thread::sleep_for(std::chrono::seconds(2));
 		travelerList[0].segmentList[0].col += 1;
 	// }
+
+	/**
+	 * Breakdown to move traveler:
+	 * 1. Get new direction
+	 * 2. Move the head of the traveler in that direction
+	 * 3. Move the next segment to where the head was
+	 * 4. Repeat 2-3 until the traveler reaches the exit
+	*/
 }
 
 
