@@ -35,7 +35,7 @@ TravelerSegment newTravelerSegment(const TravelerSegment& currentSeg, bool& canA
 void generateWalls(void);
 void generatePartitions(void);
 void moveTraveler();
-void updateCurrentSegment(int &previousRow, int &previousCol, Direction &previousDir, Direction &newDir);
+void updateCurrentSegment(int &previousRow, int &previousCol, Direction &previousDir, Direction &newDir, bool &addNewSegment);
 void getNewDirection();
 bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex);
 bool checkExit(Direction newDir, int travelerIndex, int segmentIndex);
@@ -63,6 +63,7 @@ vector<SlidingPartition> partitionList;
 vector<Direction> possibleDirections;
 GridPosition	exitPos;	//	location of the exit
 vector<thread> threads; /**< The vector to contain the thread ids */
+bool stillGoing = true;
 
 //	travelers' sleep time between moves (in microseconds)
 const int MIN_SLEEP_TIME = 1000;
@@ -140,6 +141,12 @@ void handleKeyboardEvent(unsigned char c, int x, int y)
 	{
 		//	'esc' to quit
 		case 27:
+            stillGoing = false;
+            /** Join all the threads */
+            for (auto& thread: threads) {
+                thread.join();
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
 			exit(0);
 			break;
 
@@ -242,11 +249,6 @@ int main(int argc, char* argv[])
 	for (int k=0; k<MAX_NUM_MESSAGES; k++)
 		delete []message[k];
 	delete []message;
-
-	/** Join all the threads */
-	for (auto& thread: threads) {
-		thread.join();
-	}
 	
 	//	This will probably never be executed (the exit point will be in one of the
 	//	call back functions).
@@ -343,6 +345,7 @@ void initializeApplication(void)
 	delete []travelerColor;
 
 	threads.push_back(thread(moveTraveler));
+    numLiveThreads++;
 }
 
 void moveTraveler() {
@@ -353,8 +356,16 @@ void moveTraveler() {
 	int previousCol; //previous col
 	Direction previousDir;
 	Direction newDir;
+    int moveCount = 0;
+    bool addNewSegment = false;
 
-	while(!exitFound) {
+	while(stillGoing && !exitFound) {
+    
+        if (moveCount == movesToGrowNewSegment) {
+            addNewSegment = true;
+            moveCount = 0;
+        }
+        
 		// Get new direction
 		getNewDirection();
 		std::random_device rd;
@@ -368,10 +379,19 @@ void moveTraveler() {
 			break;
 		}
 
-		updateCurrentSegment(previousRow, previousCol, previousDir, newDir);
+		updateCurrentSegment(previousRow, previousCol, previousDir, newDir, addNewSegment);
 		exitFound = checkExit(newDir, 0, headIndex);
+        if (exitFound) {
+            travelerList.erase(travelerList.begin()); /**< This will change with multiple travelers */
+        }
+        
+        if (travelerList.size() == 0) {
+            cout << "All travelers have found this exit!" << '\n';
+            return;
+        }
 		std::this_thread::sleep_for(std::chrono::milliseconds(200));
 		// cout << travelerList[0].segmentList[0].row <<", " << travelerList[0].segmentList[0].col << endl;
+        moveCount++;
 	}
 
 	/**
@@ -393,8 +413,24 @@ void getNewDirection() {
     }
 }
 
-void updateCurrentSegment(int &previousRow, int &previousCol, Direction &previousDir, Direction &newDir) {
-	previousRow = travelerList[0].segmentList[0].row;	
+void updateCurrentSegment(int &previousRow, int &previousCol, Direction &previousDir, Direction &newDir, bool &addNewSegment) {
+    unsigned int lastSegmentRow;
+    unsigned int lastSegmentCol;
+    Direction lastSegmentDir;
+    TravelerSegment newSegment;
+    size_t segmentSize = travelerList[0].segmentList.size();
+    if (addNewSegment) {
+        lastSegmentRow = travelerList[0].segmentList[segmentSize - 1].row;
+        lastSegmentCol = travelerList[0].segmentList[segmentSize - 1].col;
+        lastSegmentDir = travelerList[0].segmentList[segmentSize - 1].dir;
+        newSegment = {
+            lastSegmentRow,
+            lastSegmentCol,
+            lastSegmentDir
+        };
+    }
+    
+	previousRow = travelerList[0].segmentList[0].row;
 	previousCol = travelerList[0].segmentList[0].col;	
 	previousDir = travelerList[0].segmentList[0].dir;
 	if (newDir == Direction::NORTH) {
@@ -418,6 +454,11 @@ void updateCurrentSegment(int &previousRow, int &previousCol, Direction &previou
 		previousCol = tempCol;
 		previousDir = tempDir;
 	}
+    
+    if (addNewSegment) {
+        travelerList[0].segmentList.push_back(newSegment);
+        addNewSegment = false;
+    }
 }
 
 bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex){
