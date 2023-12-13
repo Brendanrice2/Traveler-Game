@@ -44,7 +44,6 @@ extern SquareType** grid;
 extern unsigned int numRows;			//	height of the grid
 extern unsigned int numCols;			//	width
 extern unsigned int numLiveThreads;		//	the number of live traveler threads
-extern bool stillGoing;
 
 
 
@@ -102,7 +101,7 @@ const float EXIT_COLOR[4] = {1.f, 1.f, 1.f, 1.f};
 const int   INIT_WIN_X = 50,
             INIT_WIN_Y = 40;
 
-const int	GRID_PANE_WIDTH = 800,
+const int	GRID_PANE_WIDTH = 900,
 			GRID_PANE_HEIGHT = GRID_PANE_WIDTH,
 			STATE_PANE_WIDTH = 300,
 			STATE_PANE_HEIGHT = GRID_PANE_HEIGHT,
@@ -623,14 +622,12 @@ void myKeyboardFunc(unsigned char c, int x, int y)
 
 void myTimerFunc(int value)
 {
-    if (stillGoing) {
-        //	value not used.  Warning suppression
-        (void) value;
-        
-        myDisplayFunc();
-        
-        glutTimerFunc(15, myTimerFunc, 0);
-    }
+	//	value not used.  Warning suppression
+	(void) value;
+
+    myDisplayFunc();
+
+	glutTimerFunc(15, myTimerFunc, 0);
 }
 
 #if 0
