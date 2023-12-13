@@ -44,7 +44,7 @@ extern SquareType** grid;
 extern unsigned int numRows;			//	height of the grid
 extern unsigned int numCols;			//	width
 extern unsigned int numLiveThreads;		//	the number of live traveler threads
-
+extern bool stillGoing;
 
 
 #if 0
@@ -622,12 +622,14 @@ void myKeyboardFunc(unsigned char c, int x, int y)
 
 void myTimerFunc(int value)
 {
-	//	value not used.  Warning suppression
-	(void) value;
+	if (stillGoing){
+		glutTimerFunc(15, myTimerFunc, 0);
 
-    myDisplayFunc();
+		//	value not used.  Warning suppression
+		(void) value;
 
-	glutTimerFunc(15, myTimerFunc, 0);
+		myDisplayFunc();
+	}
 }
 
 #if 0

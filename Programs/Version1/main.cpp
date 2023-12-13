@@ -63,6 +63,7 @@ vector<Traveler> travelerList;
 vector<SlidingPartition> partitionList;
 GridPosition	exitPos;	//	location of the exit
 vector<thread> threads; /**< The vector to contain the thread ids */
+bool stillGoing = true; // flag to indicate if the program is still running
 
 //	travelers' sleep time between moves (in microseconds)
 const int MIN_SLEEP_TIME = 1000;
@@ -140,6 +141,15 @@ void handleKeyboardEvent(unsigned char c, int x, int y)
 	{
 		//	'esc' to quit
 		case 27:
+			stillGoing = false;
+
+			/** Join all the threads */
+			cout << "escape?" << endl;
+			cout << flush;
+			for (auto& thread: threads) {
+				thread.join();
+			}
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			exit(0);
 			break;
 
@@ -242,11 +252,6 @@ int main(int argc, char* argv[])
 	for (int k=0; k<MAX_NUM_MESSAGES; k++)
 		delete []message[k];
 	delete []message;
-
-	/** Join all the threads */
-	for (auto& thread: threads) {
-		thread.join();
-	}
 	
 	//	This will probably never be executed (the exit point will be in one of the
 	//	call back functions).
@@ -346,25 +351,34 @@ void initializeApplication(void)
 }
 
 void moveTraveler() {
-	cout << travelerList[0].segmentList[0].row <<", " << travelerList[0].segmentList[0].col << endl;
-
 	bool exitFound = false;
 	int previousRow; //previous row
 	int previousCol; //previous col
 	Direction previousDir;
 	Direction newDir;
-	int count = 0;
+	int moveCount = 0;
 
-	while(!exitFound) {
-		count++;
+	while(stillGoing && !exitFound) {
+		moveCount++;
+		
 		// Get new direction
 		newDir = getNewDirection();
-
 		if (boundsCheckMap(newDir, 0, headIndex)) { /**< Check if head will be out of bounds */
 			exitFound = checkExit(newDir, 0, headIndex);
-			if (boundsCheckObstacles(newDir, 0, headIndex)){
+			if (exitFound) {
+				cout << "Traveler Index: " << travelerList[0].index << " has found the exit!" << endl;
+				travelerList.erase(travelerList.begin());
+				
+				if(travelerList.size() == 0){
+					cout << "All travelers have found the exit!" << endl;
+					return;
+				}
+
+			}
+			else if (boundsCheckObstacles(newDir, 0, headIndex)){
 					updateCurrentSegment(previousRow, previousCol, previousDir, newDir);
 			}
+
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		// cout << travelerList[0].segmentList[0].row <<", " << travelerList[0].segmentList[0].col << endl;
@@ -377,6 +391,7 @@ void moveTraveler() {
 	 * 3. Move the next segment to where the head was
 	 * 4. Repeat 2-3 until the traveler reaches the exit
 	*/
+
 }
 
 Direction getNewDirection() {
@@ -393,6 +408,8 @@ void updateCurrentSegment(int &previousRow, int &previousCol, Direction &previou
 	previousRow = travelerList[0].segmentList[0].row;	
 	previousCol = travelerList[0].segmentList[0].col;	
 	previousDir = travelerList[0].segmentList[0].dir;
+
+	//Process of moving the head of the traveler
 	if (newDir == Direction::NORTH) {
 		travelerList[0].segmentList[0].row -= 1;
 	} else if (newDir == Direction::SOUTH) {
@@ -402,7 +419,10 @@ void updateCurrentSegment(int &previousRow, int &previousCol, Direction &previou
 	} else if (newDir == Direction::WEST) {
 		travelerList[0].segmentList[0].col -= 1;
 	}
+
+	//Setting the new random direction to the head
 	travelerList[0].segmentList[0].dir = newDir;
+
 	for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
 		int tempRow = travelerList[0].segmentList[i].row;
 		int tempCol = travelerList[0].segmentList[i].col;
