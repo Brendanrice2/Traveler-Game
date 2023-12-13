@@ -37,6 +37,7 @@ void generatePartitions(void);
 void moveTraveler();
 bool boundsCheckMap(Direction newDir, int travelerIndex, int segmentIndex);
 void updateCurrentSegment(int &previousRow, int &previousCol, Direction &previousDir, Direction &newDir);
+Direction getNewDirection();
 
 #if 0
 //-----------------------------------------------------------------------------
@@ -343,8 +344,6 @@ void initializeApplication(void)
 }
 
 void moveTraveler() {
-	// Get new direction
-	Direction headDir = travelerList[0].segmentList[0].dir;
 	cout << travelerList[0].segmentList[0].row <<", " << travelerList[0].segmentList[0].col << endl;
 
 	bool exitFound = false;
@@ -354,7 +353,9 @@ void moveTraveler() {
 	Direction newDir;
 
 	while(!exitFound) {
-		newDir = newDirection(headDir);
+		// Get new direction
+		newDir = getNewDirection();
+		cout << "Direction: " << int(newDir) << '\n';
 
 		if(newDir == Direction::NORTH) {
 			if (boundsCheckMap(newDir, 0, 0)) { /**< Check if head will be out of bounds */
@@ -389,8 +390,14 @@ void moveTraveler() {
 	*/
 }
 
-void getNewDirection(int travelerIndex) {
+Direction getNewDirection() {
+	std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<int> distribution(0, 3);
+
+	int randomNumber = distribution(gen);
 	
+	return (Direction(randomNumber));
 }
 
 void updateCurrentSegment(int &previousRow, int &previousCol, Direction &previousDir, Direction &newDir) {
