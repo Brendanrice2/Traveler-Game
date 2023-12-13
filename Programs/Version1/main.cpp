@@ -36,7 +36,10 @@ void generateWalls(void);
 void generatePartitions(void);
 void moveTraveler();
 bool boundsCheckMap(Direction newDir, int travelerIndex, int segmentIndex);
+void updateCurrentSegment(int &previousRow, int &previousCol, Direction &previousDir, Direction &newDir);
+Direction getNewDirection();
 bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex);
+bool checkExit(Direction newDir, int travelerIndex, int segmentIndex);
 
 #if 0
 //-----------------------------------------------------------------------------
@@ -55,6 +58,7 @@ unsigned int numTravelers = 0;	//	initial number
 unsigned int movesToGrowNewSegment = 0;
 unsigned int numTravelersDone = 0;
 unsigned int numLiveThreads = 0;		//	the number of live traveler threads
+const int headIndex = 0;
 vector<Traveler> travelerList;
 vector<SlidingPartition> partitionList;
 GridPosition	exitPos;	//	location of the exit
@@ -342,8 +346,6 @@ void initializeApplication(void)
 }
 
 void moveTraveler() {
-	// Get new direction
-	Direction headDir = travelerList[0].segmentList[0].dir;
 	cout << travelerList[0].segmentList[0].row <<", " << travelerList[0].segmentList[0].col << endl;
 
 	bool exitFound = false;
@@ -351,103 +353,21 @@ void moveTraveler() {
 	int previousCol; //previous col
 	Direction previousDir;
 	Direction newDir;
+	int count = 0;
 
 	while(!exitFound) {
-		newDir = newDirection(headDir);
+		count++;
+		// Get new direction
+		newDir = getNewDirection();
 
-		if(newDir == Direction::NORTH) {
-			if (boundsCheckMap(newDir, 0, 0)) { /**< Check if head will be out of bounds */
-				if (boundsCheckObstacles(newDir, 0, 0)){
-					previousRow = travelerList[0].segmentList[0].row;	
-					previousCol = travelerList[0].segmentList[0].col;	
-					previousDir = travelerList[0].segmentList[0].dir;	
-					travelerList[0].segmentList[0].row -= 1;
-					travelerList[0].segmentList[0].dir = newDir;
-					for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
-						int tempRow = travelerList[0].segmentList[i].row;
-						int tempCol = travelerList[0].segmentList[i].col;
-						Direction tempDir = travelerList[0].segmentList[i].dir;
-						travelerList[0].segmentList[i].row = previousRow;
-						travelerList[0].segmentList[i].col = previousCol;
-						travelerList[0].segmentList[i].dir = previousDir;
-						previousRow = tempRow;
-						previousCol = tempCol;
-						previousDir = tempDir;
-					}
-				}
-			}
-		} 
-		else if(newDir == Direction::SOUTH) {
-			if (boundsCheckMap(newDir, 0, 0)) { /**< Check if head will be out of bounds */
-				if (boundsCheckObstacles(newDir, 0, 0)){
-					previousCol = travelerList[0].segmentList[0].col;
-					previousRow = travelerList[0].segmentList[0].row;
-					previousDir = travelerList[0].segmentList[0].dir;
-					travelerList[0].segmentList[0].row += 1;
-					travelerList[0].segmentList[0].dir = newDir;
-					for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
-						int tempRow = travelerList[0].segmentList[i].row;
-						int tempCol = travelerList[0].segmentList[i].col;
-						Direction tempDir = travelerList[0].segmentList[i].dir;
-						travelerList[0].segmentList[i].row = previousRow;
-						travelerList[0].segmentList[i].col = previousCol;
-						travelerList[0].segmentList[i].dir = previousDir;
-						previousRow = tempRow;
-						previousCol = tempCol;
-						previousDir = tempDir;
-					}
-				}
-			}
-		} 
-		else if(newDir == Direction::EAST) {
-			if (boundsCheckMap(newDir, 0, 0)) { /**< Check if head will be out of bounds */
-				if (boundsCheckObstacles(newDir, 0, 0)){
-					previousCol = travelerList[0].segmentList[0].col;
-					previousRow = travelerList[0].segmentList[0].row;
-					previousDir = travelerList[0].segmentList[0].dir;
-					travelerList[0].segmentList[0].col += 1;
-					travelerList[0].segmentList[0].dir = newDir;
-					for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
-						int tempRow = travelerList[0].segmentList[i].row;
-						int tempCol = travelerList[0].segmentList[i].col;
-						Direction tempDir = travelerList[0].segmentList[i].dir;
-						travelerList[0].segmentList[i].row = previousRow;
-						travelerList[0].segmentList[i].col = previousCol;
-						travelerList[0].segmentList[i].dir = previousDir;
-						previousRow = tempRow;
-						previousCol = tempCol;
-						previousDir = tempDir;
-					}
-					previousCol = travelerList[0].segmentList[0].col;
-					previousRow = travelerList[0].segmentList[0].row;
-					previousDir = travelerList[0].segmentList[0].dir;
-				}
-			}
-		} 
-		else if(newDir == Direction::WEST) {
-			if (boundsCheckMap(newDir, 0, 0)) { /**< Check if head will be out of bounds */
-				if (boundsCheckObstacles(newDir, 0, 0)){
-					previousCol = travelerList[0].segmentList[0].col;
-					previousRow = travelerList[0].segmentList[0].row;
-					previousDir = travelerList[0].segmentList[0].dir;
-					travelerList[0].segmentList[0].col -= 1;
-					travelerList[0].segmentList[0].dir = newDir;
-					for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
-						int tempRow = travelerList[0].segmentList[i].row;
-						int tempCol = travelerList[0].segmentList[i].col;
-						Direction tempDir = travelerList[0].segmentList[i].dir;
-						travelerList[0].segmentList[i].row = previousRow;
-						travelerList[0].segmentList[i].col = previousCol;
-						travelerList[0].segmentList[i].dir = previousDir;
-						previousRow = tempRow;
-						previousCol = tempCol;
-						previousDir = tempDir;
-					}
-				}
+		if (boundsCheckMap(newDir, 0, headIndex)) { /**< Check if head will be out of bounds */
+			exitFound = checkExit(newDir, 0, headIndex);
+			if (boundsCheckObstacles(newDir, 0, headIndex)){
+					updateCurrentSegment(previousRow, previousCol, previousDir, newDir);
 			}
 		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(200));
-		cout << travelerList[0].segmentList[0].row <<", " << travelerList[0].segmentList[0].col << endl;
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		// cout << travelerList[0].segmentList[0].row <<", " << travelerList[0].segmentList[0].col << endl;
 	}
 
 	/**
@@ -457,6 +377,43 @@ void moveTraveler() {
 	 * 3. Move the next segment to where the head was
 	 * 4. Repeat 2-3 until the traveler reaches the exit
 	*/
+}
+
+Direction getNewDirection() {
+	std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<int> distribution(0, 3);
+
+	int randomNumber = distribution(gen);
+	
+	return (Direction(randomNumber));
+}
+
+void updateCurrentSegment(int &previousRow, int &previousCol, Direction &previousDir, Direction &newDir) {
+	previousRow = travelerList[0].segmentList[0].row;	
+	previousCol = travelerList[0].segmentList[0].col;	
+	previousDir = travelerList[0].segmentList[0].dir;
+	if (newDir == Direction::NORTH) {
+		travelerList[0].segmentList[0].row -= 1;
+	} else if (newDir == Direction::SOUTH) {
+		travelerList[0].segmentList[0].row += 1;
+	} else if (newDir == Direction::EAST) {
+		travelerList[0].segmentList[0].col += 1;
+	} else if (newDir == Direction::WEST) {
+		travelerList[0].segmentList[0].col -= 1;
+	}
+	travelerList[0].segmentList[0].dir = newDir;
+	for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
+		int tempRow = travelerList[0].segmentList[i].row;
+		int tempCol = travelerList[0].segmentList[i].col;
+		Direction tempDir = travelerList[0].segmentList[i].dir;
+		travelerList[0].segmentList[i].row = previousRow;
+		travelerList[0].segmentList[i].col = previousCol;
+		travelerList[0].segmentList[i].dir = previousDir;
+		previousRow = tempRow;
+		previousCol = tempCol;
+		previousDir = tempDir;
+	}
 }
 
 bool boundsCheckMap(Direction newDir, int travelerIndex, int segmentIndex) {
@@ -489,31 +446,66 @@ bool boundsCheckMap(Direction newDir, int travelerIndex, int segmentIndex) {
 }
 
 bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex){
+	Direction currentDir = travelerList[0].segmentList[0].dir;
 
-	if (newDir == Direction::NORTH) {
+	if (newDir == Direction::NORTH && currentDir != Direction::SOUTH) {
 		if (grid[travelerList[travelerIndex].segmentList[segmentIndex].row - 1][travelerList[travelerIndex].segmentList[segmentIndex].col] == SquareType::FREE_SQUARE) {
 			return true;
 		} else {
 			return false;
 		}
-	} else if (newDir == Direction::SOUTH) {
+	} else if (newDir == Direction::SOUTH && currentDir != Direction::NORTH) {
 		if (grid[travelerList[travelerIndex].segmentList[segmentIndex].row + 1][travelerList[travelerIndex].segmentList[segmentIndex].col] == SquareType::FREE_SQUARE) {
 			return true;
 		} else {
 			return false;
 		}
-	} else if (newDir == Direction::EAST) {
+	} else if (newDir == Direction::EAST && currentDir != Direction::WEST) {
 		if (grid[travelerList[travelerIndex].segmentList[segmentIndex].row][travelerList[travelerIndex].segmentList[segmentIndex].col + 1] == SquareType::FREE_SQUARE) {
 			return true;
 		} else {
 			return false;
 		}
-	} else {
+	} else if (newDir == Direction::WEST && currentDir != Direction::EAST) {
 		if (grid[travelerList[travelerIndex].segmentList[segmentIndex].row][travelerList[travelerIndex].segmentList[segmentIndex].col - 1] == SquareType::FREE_SQUARE) {
 			return true;
 		} else {
 			return false;
 		}
+	} else {
+		return false;
+	}
+}
+
+bool checkExit(Direction newDir, int travelerIndex, int segmentIndex) {
+	Direction currentDir = travelerList[0].segmentList[0].dir;
+
+	if (newDir == Direction::NORTH) {
+		if (grid[travelerList[travelerIndex].segmentList[segmentIndex].row - 1][travelerList[travelerIndex].segmentList[segmentIndex].col] == SquareType::EXIT) {
+			return true;
+		} else {
+			return false;
+		}
+	} else if (newDir == Direction::SOUTH) {
+		if (grid[travelerList[travelerIndex].segmentList[segmentIndex].row + 1][travelerList[travelerIndex].segmentList[segmentIndex].col] == SquareType::EXIT) {
+			return true;
+		} else {
+			return false;
+		}
+	} else if (newDir == Direction::EAST) {
+		if (grid[travelerList[travelerIndex].segmentList[segmentIndex].row][travelerList[travelerIndex].segmentList[segmentIndex].col + 1] == SquareType::EXIT) {
+			return true;
+		} else {
+			return false;
+		}
+	} else if (newDir == Direction::WEST) {
+		if (grid[travelerList[travelerIndex].segmentList[segmentIndex].row][travelerList[travelerIndex].segmentList[segmentIndex].col - 1] == SquareType::EXIT) {
+			return true;
+		} else {
+			return false;
+		}
+	} else {
+		return false;
 	}
 }
 
