@@ -16,7 +16,7 @@
 #include <cstdlib>
 #include <ctime>
 //
-#include "../Code/gl_frontEnd.h"
+#include "gl_frontEnd.h"
 
 //	feel free to "un-use" std if this is against your beliefs.
 using namespace std;
@@ -35,9 +35,8 @@ TravelerSegment newTravelerSegment(const TravelerSegment& currentSeg, bool& canA
 void generateWalls(void);
 void generatePartitions(void);
 void moveTraveler();
-bool boundsCheckMap(Direction newDir, int travelerIndex, int segmentIndex);
 void updateCurrentSegment(int &previousRow, int &previousCol, Direction &previousDir, Direction &newDir);
-Direction getNewDirection();
+void getNewDirection();
 bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex);
 bool checkExit(Direction newDir, int travelerIndex, int segmentIndex);
 
@@ -61,6 +60,7 @@ unsigned int numLiveThreads = 0;		//	the number of live traveler threads
 const int headIndex = 0;
 vector<Traveler> travelerList;
 vector<SlidingPartition> partitionList;
+vector<Direction> possibleDirections;
 GridPosition	exitPos;	//	location of the exit
 vector<thread> threads; /**< The vector to contain the thread ids */
 
@@ -346,27 +346,31 @@ void initializeApplication(void)
 }
 
 void moveTraveler() {
-	cout << travelerList[0].segmentList[0].row <<", " << travelerList[0].segmentList[0].col << endl;
+	// cout << travelerList[0].segmentList[0].row <<", " << travelerList[0].segmentList[0].col << endl;
 
 	bool exitFound = false;
 	int previousRow; //previous row
 	int previousCol; //previous col
 	Direction previousDir;
 	Direction newDir;
-	int count = 0;
 
 	while(!exitFound) {
-		count++;
 		// Get new direction
-		newDir = getNewDirection();
+		getNewDirection();
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_int_distribution<int> distribution(0, (int) possibleDirections.size() - 1);
 
-		if (boundsCheckMap(newDir, 0, headIndex)) { /**< Check if head will be out of bounds */
-			exitFound = checkExit(newDir, 0, headIndex);
-			if (boundsCheckObstacles(newDir, 0, headIndex)){
-					updateCurrentSegment(previousRow, previousCol, previousDir, newDir);
-			}
+		if (possibleDirections.size() > 0) { /**< If it can still move */
+		    newDir = possibleDirections[distribution(gen)];
+			possibleDirections.clear();
+		} else { /**< Nowhere else to go */
+			break;
 		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+		updateCurrentSegment(previousRow, previousCol, previousDir, newDir);
+		exitFound = checkExit(newDir, 0, headIndex);
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));
 		// cout << travelerList[0].segmentList[0].row <<", " << travelerList[0].segmentList[0].col << endl;
 	}
 
@@ -379,14 +383,14 @@ void moveTraveler() {
 	*/
 }
 
-Direction getNewDirection() {
-	std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<int> distribution(0, 3);
+void getNewDirection() {
 
-	int randomNumber = distribution(gen);
-	
-	return (Direction(randomNumber));
+	// Check North
+	for (Direction dir : {Direction::NORTH, Direction::SOUTH, Direction::EAST, Direction::WEST}) {
+        if (boundsCheckObstacles(dir, 0, headIndex)) {
+            possibleDirections.push_back(dir);
+        }
+    }
 }
 
 void updateCurrentSegment(int &previousRow, int &previousCol, Direction &previousDir, Direction &newDir) {
@@ -416,90 +420,46 @@ void updateCurrentSegment(int &previousRow, int &previousCol, Direction &previou
 	}
 }
 
-bool boundsCheckMap(Direction newDir, int travelerIndex, int segmentIndex) {
-	if (newDir == Direction::NORTH) {
-		if (travelerList[travelerIndex].segmentList[segmentIndex].row > 0) {
-			return true;
-		} else {
-			return false;
-		}
-	} else if (newDir == Direction::SOUTH) {
-		if (travelerList[travelerIndex].segmentList[segmentIndex].row + 1 < numRows) {
-			return true;
-		} else {
-			return false;
-		}
-	} else if (newDir == Direction::EAST) {
-		if (travelerList[travelerIndex].segmentList[segmentIndex].col + 1 < numCols) {
-			return true;
-		} else {
-			return false;
-		}
-	} else {
-		// WEST
-		if (travelerList[travelerIndex].segmentList[segmentIndex].col > 0) {
-			return true;
-		} else {
-			return false;
-		}
-	}
-}
-
 bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex){
 	Direction currentDir = travelerList[0].segmentList[0].dir;
+    int row = travelerList[travelerIndex].segmentList[segmentIndex].row;
+    int col = travelerList[travelerIndex].segmentList[segmentIndex].col;
 
-	if (newDir == Direction::NORTH && currentDir != Direction::SOUTH) {
-		if (grid[travelerList[travelerIndex].segmentList[segmentIndex].row - 1][travelerList[travelerIndex].segmentList[segmentIndex].col] == SquareType::FREE_SQUARE) {
-			return true;
-		} else {
-			return false;
-		}
-	} else if (newDir == Direction::SOUTH && currentDir != Direction::NORTH) {
-		if (grid[travelerList[travelerIndex].segmentList[segmentIndex].row + 1][travelerList[travelerIndex].segmentList[segmentIndex].col] == SquareType::FREE_SQUARE) {
-			return true;
-		} else {
-			return false;
-		}
-	} else if (newDir == Direction::EAST && currentDir != Direction::WEST) {
-		if (grid[travelerList[travelerIndex].segmentList[segmentIndex].row][travelerList[travelerIndex].segmentList[segmentIndex].col + 1] == SquareType::FREE_SQUARE) {
-			return true;
-		} else {
-			return false;
-		}
-	} else if (newDir == Direction::WEST && currentDir != Direction::EAST) {
-		if (grid[travelerList[travelerIndex].segmentList[segmentIndex].row][travelerList[travelerIndex].segmentList[segmentIndex].col - 1] == SquareType::FREE_SQUARE) {
-			return true;
-		} else {
-			return false;
-		}
-	} else {
-		return false;
-	}
+    if (newDir == Direction::NORTH && currentDir != Direction::SOUTH) {
+        return (row > 0 && grid[row - 1][col] == SquareType::FREE_SQUARE);
+    } else if (newDir == Direction::SOUTH && currentDir != Direction::NORTH) {
+        return (row + 1 < numRows && grid[row + 1][col] == SquareType::FREE_SQUARE);
+    } else if (newDir == Direction::EAST && currentDir != Direction::WEST) {
+        return (col + 1 < numCols && grid[row][col + 1] == SquareType::FREE_SQUARE);
+    } else if (newDir == Direction::WEST && currentDir != Direction::EAST) {
+        return (col > 0 && grid[row][col - 1] == SquareType::FREE_SQUARE);
+    } else {
+        return false;
+    }
 }
 
 bool checkExit(Direction newDir, int travelerIndex, int segmentIndex) {
-	Direction currentDir = travelerList[0].segmentList[0].dir;
 
 	if (newDir == Direction::NORTH) {
-		if (grid[travelerList[travelerIndex].segmentList[segmentIndex].row - 1][travelerList[travelerIndex].segmentList[segmentIndex].col] == SquareType::EXIT) {
+		if (travelerList[travelerIndex].segmentList[headIndex].row > 0 && grid[travelerList[travelerIndex].segmentList[headIndex].row - 1][travelerList[travelerIndex].segmentList[headIndex].col] == SquareType::EXIT) {
 			return true;
 		} else {
 			return false;
 		}
 	} else if (newDir == Direction::SOUTH) {
-		if (grid[travelerList[travelerIndex].segmentList[segmentIndex].row + 1][travelerList[travelerIndex].segmentList[segmentIndex].col] == SquareType::EXIT) {
+		if (travelerList[travelerIndex].segmentList[headIndex].row + 1 < numRows && grid[travelerList[travelerIndex].segmentList[headIndex].row + 1][travelerList[travelerIndex].segmentList[headIndex].col] == SquareType::EXIT) {
 			return true;
 		} else {
 			return false;
 		}
 	} else if (newDir == Direction::EAST) {
-		if (grid[travelerList[travelerIndex].segmentList[segmentIndex].row][travelerList[travelerIndex].segmentList[segmentIndex].col + 1] == SquareType::EXIT) {
+		if (travelerList[travelerIndex].segmentList[headIndex].col + 1 < numCols && grid[travelerList[travelerIndex].segmentList[headIndex].row][travelerList[travelerIndex].segmentList[headIndex].col + 1] == SquareType::EXIT) {
 			return true;
 		} else {
 			return false;
 		}
 	} else if (newDir == Direction::WEST) {
-		if (grid[travelerList[travelerIndex].segmentList[segmentIndex].row][travelerList[travelerIndex].segmentList[segmentIndex].col - 1] == SquareType::EXIT) {
+        if (travelerList[travelerIndex].segmentList[headIndex].col > 0 && grid[travelerList[travelerIndex].segmentList[headIndex].row][travelerList[travelerIndex].segmentList[headIndex].col - 1] == SquareType::EXIT) {
 			return true;
 		} else {
 			return false;
