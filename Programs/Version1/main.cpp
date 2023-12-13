@@ -39,6 +39,7 @@ bool boundsCheckMap(Direction newDir, int travelerIndex, int segmentIndex);
 void updateCurrentSegment(int &previousRow, int &previousCol, Direction &previousDir, Direction &newDir);
 Direction getNewDirection();
 bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex);
+bool checkExit(Direction newDir, int travelerIndex, int segmentIndex);
 
 #if 0
 //-----------------------------------------------------------------------------
@@ -352,16 +353,17 @@ void moveTraveler() {
 	int previousCol; //previous col
 	Direction previousDir;
 	Direction newDir;
+	int count = 0;
 
 	while(!exitFound) {
+		count++;
 		// Get new direction
 		newDir = getNewDirection();
 
 		if (boundsCheckMap(newDir, 0, headIndex)) { /**< Check if head will be out of bounds */
+			exitFound = checkExit(newDir, 0, headIndex);
 			if (boundsCheckObstacles(newDir, 0, headIndex)){
-				if (checkExit(newDir, 0, headIndex)) {
 					updateCurrentSegment(previousRow, previousCol, previousDir, newDir);
-				}
 			}
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -475,7 +477,7 @@ bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex)
 	}
 }
 
-bool checkExit(Direction newDir, int travelerIndex, int segmentIndex){
+bool checkExit(Direction newDir, int travelerIndex, int segmentIndex) {
 	Direction currentDir = travelerList[0].segmentList[0].dir;
 
 	if (newDir == Direction::NORTH) {
