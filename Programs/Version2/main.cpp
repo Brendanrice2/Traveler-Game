@@ -17,6 +17,7 @@
 #include <ctime>
 //
 #include "gl_frontEnd.h"
+#include <climits>
 
 //	feel free to "un-use" std if this is against your beliefs.
 using namespace std;
@@ -373,15 +374,11 @@ void moveTraveler(Traveler traveler) {
             moveCount = 0;
         }
 
-		//cout << "first check" << endl;
-        
 		// Get new direction
 		getNewDirection(possibleDirections, travIndex);
 		std::random_device rd;
 		std::mt19937 gen(rd());
 		std::uniform_int_distribution<int> distribution(0, (int) possibleDirections.size() - 1);
-
-		//cout << "second check" << endl;
 
 		if (possibleDirections.size() > 0) { /**< If it can still move */
 		    newDir = possibleDirections[distribution(gen)];
