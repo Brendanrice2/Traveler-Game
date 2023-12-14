@@ -15,6 +15,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
+#include <climits>
 //
 #include "gl_frontEnd.h"
 #include <climits>
@@ -40,6 +41,7 @@ void updateCurrentSegment(int &previousRow, int &previousCol, Direction &previou
 void getNewDirection(vector<Direction> &possibleDirections, int travIndex);
 bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex);
 bool checkExit(Direction newDir, int travelerIndex, int segmentIndex);
+void finishAndTerminateSegment(int &travIndex);
 
 #if 0
 //-----------------------------------------------------------------------------
@@ -387,21 +389,10 @@ void moveTraveler(Traveler traveler) {
 			break;
 		}
 
+        exitFound = checkExit(newDir, travIndex, headIndex);
 		updateCurrentSegment(previousRow, previousCol, previousDir, newDir, addNewSegment, travIndex);
-
-		exitFound = checkExit(newDir, travIndex, headIndex);
         if (exitFound) {
-			//Freeing all traveler spaces
-			for(unsigned int k = 0; k < travelerList[travIndex].segmentList.size(); k++) {
-				int tempRow = travelerList[travIndex].segmentList[k].row;
-				int tempCol = travelerList[travIndex].segmentList[k].col;
-				grid[tempRow][tempCol] = SquareType::FREE_SQUARE;
-			}
-			//erasing traveler
-            travelerList.erase(travelerList.begin() + travIndex); /**< This will change with multiple travelers */
-			numTravelersDone++;
-
-			cout << "Traveler " << travIndex << " has found the exit!" << '\n';
+            finishAndTerminateSegment(travIndex);
         }
         
         if (travelerList.size() == 0) {
@@ -419,6 +410,25 @@ void moveTraveler(Traveler traveler) {
 	 * 3. Move the next segment to where the head was
 	 * 4. Repeat 2-3 until the traveler reaches the exit
 	*/
+}
+
+void finishAndTerminateSegment(int &travIndex) {
+    //Freeing all traveler spaces
+    for(unsigned int k = 0; k < travelerList[travIndex].segmentList.size(); k++) {
+        int tempRow = travelerList[travIndex].segmentList[k].row;
+        int tempCol = travelerList[travIndex].segmentList[k].col;
+        grid[tempRow][tempCol] = SquareType::FREE_SQUARE;
+    }
+    //erasing traveler
+    travelerList.erase(travelerList.begin() + travIndex); /**< This will change with multiple travelers */
+    numTravelersDone++;
+    numLiveThreads--;
+    
+    for (size_t i = travIndex; i < travelerList.size(); i++) {
+        travelerList[i].index -= 1;
+    }
+
+    cout << "Traveler " << travIndex << " has found the exit!" << '\n';
 }
 
 void getNewDirection(vector<Direction> &possibleDirections, int travIndex) {
