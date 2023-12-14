@@ -312,7 +312,7 @@ void initializeApplication(void)
 		TravelerSegment seg = {pos.row, pos.col, dir};
 		Traveler traveler;
 		traveler.segmentList.push_back(seg);
-		grid[pos.row][pos.col] = SquareType::TRAVELER;
+		grid[pos.row][pos.col] = SquareType::TRAVELER;		//Use this line to change the grid
 
         //    I add 0-n segments to my travelers
         unsigned int numAddSegments = segmentNumberGenerator(engine);
@@ -356,7 +356,7 @@ void moveTraveler() {
 	int previousCol; //previous col
 	Direction previousDir;
 	Direction newDir;
-    int moveCount = 0;
+    unsigned int moveCount = 0;
     bool addNewSegment = false;
 
 	while(stillGoing && !exitFound) {
@@ -382,7 +382,15 @@ void moveTraveler() {
 		updateCurrentSegment(previousRow, previousCol, previousDir, newDir, addNewSegment);
 		exitFound = checkExit(newDir, 0, headIndex);
         if (exitFound) {
+			//Freeing all traveler spaces
+			for(unsigned int k = 0; k < travelerList[0].segmentList.size(); k++) {
+				int tempRow = travelerList[0].segmentList[k].row;
+				int tempCol = travelerList[0].segmentList[k].col;
+				grid[tempRow][tempCol] = SquareType::FREE_SQUARE;
+			}
+			//erasing traveler
             travelerList.erase(travelerList.begin()); /**< This will change with multiple travelers */
+			numTravelersDone++;
         }
         
         if (travelerList.size() == 0) {
@@ -390,7 +398,6 @@ void moveTraveler() {
             return;
         }
 		std::this_thread::sleep_for(std::chrono::milliseconds(200));
-		// cout << travelerList[0].segmentList[0].row <<", " << travelerList[0].segmentList[0].col << endl;
         moveCount++;
 	}
 
@@ -428,6 +435,8 @@ void updateCurrentSegment(int &previousRow, int &previousCol, Direction &previou
             lastSegmentCol,
             lastSegmentDir
         };
+		grid[lastSegmentRow][lastSegmentCol] = SquareType::TRAVELER;
+
     }
     
 	previousRow = travelerList[0].segmentList[0].row;
@@ -435,13 +444,18 @@ void updateCurrentSegment(int &previousRow, int &previousCol, Direction &previou
 	previousDir = travelerList[0].segmentList[0].dir;
 	if (newDir == Direction::NORTH) {
 		travelerList[0].segmentList[0].row -= 1;
+		grid[travelerList[0].segmentList[0].row][travelerList[0].segmentList[0].col] = SquareType::TRAVELER;
 	} else if (newDir == Direction::SOUTH) {
 		travelerList[0].segmentList[0].row += 1;
+		grid[travelerList[0].segmentList[0].row][travelerList[0].segmentList[0].col] = SquareType::TRAVELER;
 	} else if (newDir == Direction::EAST) {
 		travelerList[0].segmentList[0].col += 1;
+		grid[travelerList[0].segmentList[0].row][travelerList[0].segmentList[0].col] = SquareType::TRAVELER;
 	} else if (newDir == Direction::WEST) {
 		travelerList[0].segmentList[0].col -= 1;
+		grid[travelerList[0].segmentList[0].row][travelerList[0].segmentList[0].col] = SquareType::TRAVELER;
 	}
+
 	travelerList[0].segmentList[0].dir = newDir;
 	for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
 		int tempRow = travelerList[0].segmentList[i].row;
@@ -453,6 +467,13 @@ void updateCurrentSegment(int &previousRow, int &previousCol, Direction &previou
 		previousRow = tempRow;
 		previousCol = tempCol;
 		previousDir = tempDir;
+		
+		if(i == travelerList[0].segmentList.size() - 1) {
+			grid[previousRow][previousCol] = SquareType::FREE_SQUARE;
+		} 
+		/*else {
+			grid[previousRow][previousCol] = SquareType::TRAVELER;
+		}*/
 	}
     
     if (addNewSegment) {
@@ -469,9 +490,9 @@ bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex)
     if (newDir == Direction::NORTH && currentDir != Direction::SOUTH) {
         return (row > 0 && grid[row - 1][col] == SquareType::FREE_SQUARE);
     } else if (newDir == Direction::SOUTH && currentDir != Direction::NORTH) {
-        return (row + 1 < numRows && grid[row + 1][col] == SquareType::FREE_SQUARE);
+        return (row + 1 < static_cast<int>(numRows) && grid[row + 1][col] == SquareType::FREE_SQUARE);
     } else if (newDir == Direction::EAST && currentDir != Direction::WEST) {
-        return (col + 1 < numCols && grid[row][col + 1] == SquareType::FREE_SQUARE);
+        return (col + 1 < static_cast<int>(numCols) && grid[row][col + 1] == SquareType::FREE_SQUARE);
     } else if (newDir == Direction::WEST && currentDir != Direction::EAST) {
         return (col > 0 && grid[row][col - 1] == SquareType::FREE_SQUARE);
     } else {
