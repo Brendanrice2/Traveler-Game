@@ -210,15 +210,21 @@ int main(int argc, char* argv[])
 	//	So far, I hard code-some values
 
 	// Checking arguments
-	if (argc != 5) {
+	if (argc != 5 && argc != 4) {
 		perror("usage: invalid arguments");
 		exit(-1);
-	}
+    } else if (argc == 4) {
+        numRows = stoi(argv[2]);
+        numCols = stoi(argv[1]);
+        numTravelers = stoi(argv[3]);
+        movesToGrowNewSegment = INT_MAX;
+    } else {
+        numRows = stoi(argv[2]);
+        numCols = stoi(argv[1]);
+        numTravelers = stoi(argv[3]);
+        movesToGrowNewSegment = stoi(argv[4]);
+    }
 
-	numRows = stoi(argv[2]);
-	numCols = stoi(argv[1]);
-	numTravelers = stoi(argv[3]);
-	movesToGrowNewSegment = stoi(argv[4]);
 	numLiveThreads = 0;
 	numTravelersDone = 0;
 
@@ -435,7 +441,7 @@ void updateCurrentSegment(int &previousRow, int &previousCol, Direction &previou
             lastSegmentCol,
             lastSegmentDir
         };
-		grid[lastSegmentRow][lastSegmentCol] = SquareType::TRAVELER;
+		grid[lastSegmentRow][lastSegmentCol] = SquareType::TRAVELER; /**< Makes grid location with new segment a traveler type */
 
     }
     
@@ -444,7 +450,7 @@ void updateCurrentSegment(int &previousRow, int &previousCol, Direction &previou
 	previousDir = travelerList[0].segmentList[0].dir;
 	if (newDir == Direction::NORTH) {
 		travelerList[0].segmentList[0].row -= 1;
-		grid[travelerList[0].segmentList[0].row][travelerList[0].segmentList[0].col] = SquareType::TRAVELER;
+		grid[travelerList[0].segmentList[0].row][travelerList[0].segmentList[0].col] = SquareType::TRAVELER; /**< Makes every grid location where a segment is a traveler type */
 	} else if (newDir == Direction::SOUTH) {
 		travelerList[0].segmentList[0].row += 1;
 		grid[travelerList[0].segmentList[0].row][travelerList[0].segmentList[0].col] = SquareType::TRAVELER;
@@ -457,7 +463,7 @@ void updateCurrentSegment(int &previousRow, int &previousCol, Direction &previou
 	}
 
 	travelerList[0].segmentList[0].dir = newDir;
-	for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) {
+	for(unsigned int i = 1; i < travelerList[0].segmentList.size(); i++) { /**< Updates every segment after the head */
 		int tempRow = travelerList[0].segmentList[i].row;
 		int tempCol = travelerList[0].segmentList[i].col;
 		Direction tempDir = travelerList[0].segmentList[i].dir;
@@ -468,13 +474,14 @@ void updateCurrentSegment(int &previousRow, int &previousCol, Direction &previou
 		previousCol = tempCol;
 		previousDir = tempDir;
 		
-		if(i == travelerList[0].segmentList.size() - 1) {
+		if (i == travelerList[0].segmentList.size() - 1) {
 			grid[previousRow][previousCol] = SquareType::FREE_SQUARE;
-		} 
-		/*else {
-			grid[previousRow][previousCol] = SquareType::TRAVELER;
-		}*/
+		}
 	}
+    
+    if (travelerList[0].segmentList.size() == 1) {
+        grid[previousRow][previousCol] = SquareType::FREE_SQUARE;
+    }
     
     if (addNewSegment) {
         travelerList[0].segmentList.push_back(newSegment);
