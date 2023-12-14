@@ -209,16 +209,21 @@ int main(int argc, char* argv[])
 	//	So far, I hard code-some values
 
 	// Checking arguments
-	if (argc != 5) {
-		perror("usage: invalid arguments");
-		exit(-1);
-	}
-
-	numRows = stoi(argv[2]);
-	numCols = stoi(argv[1]);
-	numTravelers = stoi(argv[3]);
-	movesToGrowNewSegment = stoi(argv[4]);
-	numLiveThreads = stoi(argv[3]);
+    if (argc != 5 && argc != 4) {
+        perror("usage: invalid arguments");
+        exit(-1);
+    } else if (argc == 4) {
+        numRows = stoi(argv[2]);
+        numCols = stoi(argv[1]);
+        numTravelers = stoi(argv[3]);
+        movesToGrowNewSegment = INT_MAX;
+    } else {
+        numRows = stoi(argv[2]);
+        numCols = stoi(argv[1]);
+        numTravelers = stoi(argv[3]);
+        movesToGrowNewSegment = stoi(argv[4]);
+    }
+    numLiveThreads = 0;
 	numTravelersDone = 0;
 
 	//	Even though we extracted the relevant information from the argument
@@ -480,11 +485,12 @@ void updateCurrentSegment(int &previousRow, int &previousCol, Direction &previou
 		
 		if(i == travelerList[travIndex].segmentList.size() - 1) {
 			grid[previousRow][previousCol] = SquareType::FREE_SQUARE;
-		} 
-		/*else {
-			grid[previousRow][previousCol] = SquareType::TRAVELER;
-		}*/
+		}
 	}
+    
+    if (travelerList[travIndex].segmentList.size() == 1) {
+        grid[previousRow][previousCol] = SquareType::FREE_SQUARE;
+    }
     
     if (addNewSegment) {
         travelerList[travIndex].segmentList.push_back(newSegment);
