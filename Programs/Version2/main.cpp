@@ -352,7 +352,6 @@ void initializeApplication(void)
 	for(unsigned int i = 0; i < numTravelers; i++) {
 		threads.push_back(thread(moveTraveler, travelerList[i]));
 	}
-    numLiveThreads++;
 }
 
 void moveTraveler(Traveler traveler) {
@@ -505,13 +504,13 @@ bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex)
     int col = travelerList[travelerIndex].segmentList[segmentIndex].col;
 
     if (newDir == Direction::NORTH && currentDir != Direction::SOUTH) {
-        return (row > 0 && grid[row - 1][col] == SquareType::FREE_SQUARE);
+        return (row > 0 && grid[row - 1][col] == SquareType::FREE_SQUARE) || (row > 0 && grid[row - 1][col] == SquareType::EXIT);
     } else if (newDir == Direction::SOUTH && currentDir != Direction::NORTH) {
-        return (row + 1 < static_cast<int>(numRows) && grid[row + 1][col] == SquareType::FREE_SQUARE);
+        return (row + 1 < static_cast<int>(numRows) && grid[row + 1][col] == SquareType::FREE_SQUARE) || (row + 1 < static_cast<int>(numRows) && grid[row + 1][col] == SquareType::EXIT);
     } else if (newDir == Direction::EAST && currentDir != Direction::WEST) {
-        return (col + 1 < static_cast<int>(numCols) && grid[row][col + 1] == SquareType::FREE_SQUARE);
+        return (col + 1 < static_cast<int>(numCols) && grid[row][col + 1] == SquareType::FREE_SQUARE) || (col + 1 < static_cast<int>(numCols) && grid[row][col + 1] == SquareType::EXIT);
     } else if (newDir == Direction::WEST && currentDir != Direction::EAST) {
-        return (col > 0 && grid[row][col - 1] == SquareType::FREE_SQUARE);
+        return (col > 0 && grid[row][col - 1] == SquareType::FREE_SQUARE) || (col > 0 && grid[row][col - 1] == SquareType::EXIT);
     } else {
         return false;
     }
