@@ -101,7 +101,7 @@ const float EXIT_COLOR[4] = {1.f, 1.f, 1.f, 1.f};
 const int   INIT_WIN_X = 50,
             INIT_WIN_Y = 40;
 
-const int	GRID_PANE_WIDTH = 900,
+const int	GRID_PANE_WIDTH = 800,
 			GRID_PANE_HEIGHT = GRID_PANE_WIDTH,
 			STATE_PANE_WIDTH = 300,
 			STATE_PANE_HEIGHT = GRID_PANE_HEIGHT,

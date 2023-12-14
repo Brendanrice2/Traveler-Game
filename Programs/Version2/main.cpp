@@ -488,7 +488,7 @@ void updateCurrentSegment(int &previousRow, int &previousCol, Direction &previou
 		}
 	}
     
-    if (travelerList[0].segmentList.size() == 1) {
+    if (travelerList[travIndex].segmentList.size() == 1) {
         grid[previousRow][previousCol] = SquareType::FREE_SQUARE;
     }
     
