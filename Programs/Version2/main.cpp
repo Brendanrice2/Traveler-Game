@@ -10,12 +10,13 @@
 #include <iostream>
 #include <string>
 #include <random>
+#include <thread>
 //
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
 //
-#include "../Code/gl_frontEnd.h"
+#include "gl_frontEnd.h"
 
 //	feel free to "un-use" std if this is against your beliefs.
 using namespace std;
@@ -33,6 +34,11 @@ Direction newDirection(Direction forbiddenDir = Direction::NUM_DIRECTIONS);
 TravelerSegment newTravelerSegment(const TravelerSegment& currentSeg, bool& canAdd);
 void generateWalls(void);
 void generatePartitions(void);
+void moveTraveler(Traveler traveler);
+void updateCurrentSegment(int &previousRow, int &previousCol, Direction &previousDir, Direction &newDir, bool &addNewSegment, int travIndex);
+void getNewDirection();
+bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex);
+bool checkExit(Direction newDir, int travelerIndex, int segmentIndex);
 
 #if 0
 //-----------------------------------------------------------------------------
@@ -48,11 +54,16 @@ SquareType** grid;
 unsigned int numRows = 0;	//	height of the grid
 unsigned int numCols = 0;	//	width
 unsigned int numTravelers = 0;	//	initial number
+unsigned int movesToGrowNewSegment = 0;
 unsigned int numTravelersDone = 0;
 unsigned int numLiveThreads = 0;		//	the number of live traveler threads
+const int headIndex = 0;
 vector<Traveler> travelerList;
 vector<SlidingPartition> partitionList;
+vector<Direction> possibleDirections;
 GridPosition	exitPos;	//	location of the exit
+vector<thread> threads; /**< The vector to contain the thread ids */
+bool stillGoing = true;
 
 //	travelers' sleep time between moves (in microseconds)
 const int MIN_SLEEP_TIME = 1000;
@@ -130,6 +141,12 @@ void handleKeyboardEvent(unsigned char c, int x, int y)
 	{
 		//	'esc' to quit
 		case 27:
+            stillGoing = false;
+            /** Join all the threads */
+            for (auto& thread: threads) {
+                thread.join();
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
 			exit(0);
 			break;
 
@@ -191,10 +208,18 @@ int main(int argc, char* argv[])
 	//	to be the width (number of columns) and height (number of rows) of the
 	//	grid, the number of travelers, etc.
 	//	So far, I hard code-some values
-	numRows = 30;
-	numCols = 35;
-	numTravelers = 8;
-	numLiveThreads = 0;
+
+	// Checking arguments
+	if (argc != 5) {
+		perror("usage: invalid arguments");
+		exit(-1);
+	}
+
+	numRows = stoi(argv[2]);
+	numCols = stoi(argv[1]);
+	numTravelers = stoi(argv[3]);
+	movesToGrowNewSegment = stoi(argv[4]);
+	numLiveThreads = stoi(argv[3]);
 	numTravelersDone = 0;
 
 	//	Even though we extracted the relevant information from the argument
@@ -213,6 +238,7 @@ int main(int argc, char* argv[])
 	//	we set up earlier will be called when the corresponding event
 	//	occurs
 	glutMainLoop();
+
 	
 	//	Free allocated resource before leaving (not absolutely needed, but
 	//	just nicer.  Also, if you crash there, you know something is wrong
@@ -286,7 +312,8 @@ void initializeApplication(void)
 		TravelerSegment seg = {pos.row, pos.col, dir};
 		Traveler traveler;
 		traveler.segmentList.push_back(seg);
-		grid[pos.row][pos.col] = SquareType::TRAVELER;
+		traveler.index = k;
+		grid[pos.row][pos.col] = SquareType::TRAVELER;		//Use this line to change the grid
 
         //    I add 0-n segments to my travelers
         unsigned int numAddSegments = segmentNumberGenerator(engine);
@@ -317,8 +344,214 @@ void initializeApplication(void)
 	for (unsigned int k=0; k<numTravelers; k++)
 		delete []travelerColor[k];
 	delete []travelerColor;
+
+	for(unsigned int i = 0; i < numTravelers; i++) {
+		threads.push_back(thread(moveTraveler, travelerList[i]));
+	}
+    numLiveThreads++;
 }
 
+void moveTraveler(Traveler traveler) {
+	
+	bool exitFound = false;
+	int previousRow; //previous row
+	int previousCol; //previous col
+	Direction previousDir;
+	Direction newDir;
+    unsigned int moveCount = 0;
+    bool addNewSegment = false;
+	int travIndex = traveler.index;
+	
+	while(stillGoing && !exitFound) {
+    
+        if (moveCount == movesToGrowNewSegment) {
+            addNewSegment = true;
+            moveCount = 0;
+        }
+
+		//cout << "first check" << endl;
+        
+		// Get new direction
+		getNewDirection();
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_int_distribution<int> distribution(0, (int) possibleDirections.size() - 1);
+
+		//cout << "second check" << endl;
+
+		if (possibleDirections.size() > 0) { /**< If it can still move */
+		    newDir = possibleDirections[distribution(gen)];
+			possibleDirections.clear();
+		} else { /**< Nowhere else to go */
+			break;
+		}
+
+		cout << "Moving: " << travIndex << endl;
+		updateCurrentSegment(previousRow, previousCol, previousDir, newDir, addNewSegment, travIndex);
+		cout << "Move Completed: " << travIndex << endl;
+		//cout << "third check:" << travIndex << endl;
+		exitFound = checkExit(newDir, travIndex, headIndex);
+        if (exitFound) {
+			//Freeing all traveler spaces
+			for(unsigned int k = 0; k < travelerList[travIndex].segmentList.size(); k++) {
+				int tempRow = travelerList[travIndex].segmentList[k].row;
+				int tempCol = travelerList[travIndex].segmentList[k].col;
+				grid[tempRow][tempCol] = SquareType::FREE_SQUARE;
+			}
+			//erasing traveler
+            travelerList.erase(travelerList.begin() + travIndex); /**< This will change with multiple travelers */
+			numTravelersDone++;
+
+			cout << "Traveler " << travIndex << " has found the exit!" << '\n';
+        }
+        
+        if (travelerList.size() == 0) {
+            cout << "All travelers have found this exit!" << '\n';
+            return;
+        }
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        moveCount++;
+	}
+
+	/**
+	 * Breakdown to move traveler:
+	 * 1. Get new direction
+	 * 2. Move the head of the traveler in that direction
+	 * 3. Move the next segment to where the head was
+	 * 4. Repeat 2-3 until the traveler reaches the exit
+	*/
+}
+
+void getNewDirection() {
+
+	// Check North
+	for (Direction dir : {Direction::NORTH, Direction::SOUTH, Direction::EAST, Direction::WEST}) {
+        if (boundsCheckObstacles(dir, 0, headIndex)) {
+            possibleDirections.push_back(dir);
+        }
+    }
+}
+
+void updateCurrentSegment(int &previousRow, int &previousCol, Direction &previousDir, Direction &newDir, bool &addNewSegment, int travIndex) {
+    cout << "("<< travIndex << ")" << "Setting variables...";
+	unsigned int lastSegmentRow;
+    unsigned int lastSegmentCol;
+    Direction lastSegmentDir;
+    TravelerSegment newSegment;
+    size_t segmentSize = travelerList[travIndex].segmentList.size();
+	cout << "("<< travIndex << ")" << "Success!" << endl;
+
+    if (addNewSegment) {
+        lastSegmentRow = travelerList[travIndex].segmentList[segmentSize - 1].row;
+        lastSegmentCol = travelerList[travIndex].segmentList[segmentSize - 1].col;
+        lastSegmentDir = travelerList[travIndex].segmentList[segmentSize - 1].dir;
+        newSegment = {
+            lastSegmentRow,
+            lastSegmentCol,
+            lastSegmentDir
+        };
+		grid[lastSegmentRow][lastSegmentCol] = SquareType::TRAVELER;
+
+    }
+    
+	cout << travIndex << ": ";
+	previousRow = travelerList[travIndex].segmentList[0].row;
+	cout << "a";
+	previousCol = travelerList[travIndex].segmentList[0].col;	
+	cout << "b";
+	previousDir = travelerList[travIndex].segmentList[0].dir;
+	cout << "c"<<  endl;
+	cout << "Seg: " << travIndex << endl;
+	cout << "("<< travIndex << ")" << "Getting newDir...";
+	if (newDir == Direction::NORTH) {
+		travelerList[travIndex].segmentList[0].row -= 1;
+		grid[travelerList[travIndex].segmentList[0].row][travelerList[travIndex].segmentList[0].col] = SquareType::TRAVELER;
+	} else if (newDir == Direction::SOUTH) {
+		travelerList[travIndex].segmentList[0].row += 1;
+		grid[travelerList[travIndex].segmentList[0].row][travelerList[travIndex].segmentList[0].col] = SquareType::TRAVELER;
+	} else if (newDir == Direction::EAST) {
+		travelerList[travIndex].segmentList[0].col += 1;
+		grid[travelerList[travIndex].segmentList[0].row][travelerList[travIndex].segmentList[0].col] = SquareType::TRAVELER;
+	} else if (newDir == Direction::WEST) {
+		travelerList[travIndex].segmentList[0].col -= 1;
+		grid[travelerList[travIndex].segmentList[0].row][travelerList[travIndex].segmentList[0].col] = SquareType::TRAVELER;
+	}
+	cout << "("<< travIndex << ")" << "Sucess!" << endl;
+
+	travelerList[travIndex].segmentList[0].dir = newDir;
+	for(unsigned int i = 1; i < travelerList[travIndex].segmentList.size(); i++) {
+		int tempRow = travelerList[travIndex].segmentList[i].row;
+		int tempCol = travelerList[travIndex].segmentList[i].col;
+		Direction tempDir = travelerList[travIndex].segmentList[i].dir;
+		travelerList[travIndex].segmentList[i].row = previousRow;
+		travelerList[travIndex].segmentList[i].col = previousCol;
+		travelerList[travIndex].segmentList[i].dir = previousDir;
+		previousRow = tempRow;
+		previousCol = tempCol;
+		previousDir = tempDir;
+		
+		if(i == travelerList[travIndex].segmentList.size() - 1) {
+			grid[previousRow][previousCol] = SquareType::FREE_SQUARE;
+		} 
+		/*else {
+			grid[previousRow][previousCol] = SquareType::TRAVELER;
+		}*/
+	}
+    
+    if (addNewSegment) {
+        travelerList[travIndex].segmentList.push_back(newSegment);
+        addNewSegment = false;
+    }
+}
+
+bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex){
+	Direction currentDir = travelerList[travelerIndex].segmentList[0].dir;
+    int row = travelerList[travelerIndex].segmentList[segmentIndex].row;
+    int col = travelerList[travelerIndex].segmentList[segmentIndex].col;
+
+    if (newDir == Direction::NORTH && currentDir != Direction::SOUTH) {
+        return (row > 0 && grid[row - 1][col] == SquareType::FREE_SQUARE);
+    } else if (newDir == Direction::SOUTH && currentDir != Direction::NORTH) {
+        return (row + 1 < static_cast<int>(numRows) && grid[row + 1][col] == SquareType::FREE_SQUARE);
+    } else if (newDir == Direction::EAST && currentDir != Direction::WEST) {
+        return (col + 1 < static_cast<int>(numCols) && grid[row][col + 1] == SquareType::FREE_SQUARE);
+    } else if (newDir == Direction::WEST && currentDir != Direction::EAST) {
+        return (col > 0 && grid[row][col - 1] == SquareType::FREE_SQUARE);
+    } else {
+        return false;
+    }
+}
+
+bool checkExit(Direction newDir, int travelerIndex, int segmentIndex) {
+
+	if (newDir == Direction::NORTH) {
+		if (travelerList[travelerIndex].segmentList[headIndex].row > 0 && grid[travelerList[travelerIndex].segmentList[headIndex].row - 1][travelerList[travelerIndex].segmentList[headIndex].col] == SquareType::EXIT) {
+			return true;
+		} else {
+			return false;
+		}
+	} else if (newDir == Direction::SOUTH) {
+		if (travelerList[travelerIndex].segmentList[headIndex].row + 1 < numRows && grid[travelerList[travelerIndex].segmentList[headIndex].row + 1][travelerList[travelerIndex].segmentList[headIndex].col] == SquareType::EXIT) {
+			return true;
+		} else {
+			return false;
+		}
+	} else if (newDir == Direction::EAST) {
+		if (travelerList[travelerIndex].segmentList[headIndex].col + 1 < numCols && grid[travelerList[travelerIndex].segmentList[headIndex].row][travelerList[travelerIndex].segmentList[headIndex].col + 1] == SquareType::EXIT) {
+			return true;
+		} else {
+			return false;
+		}
+	} else if (newDir == Direction::WEST) {
+        if (travelerList[travelerIndex].segmentList[headIndex].col > 0 && grid[travelerList[travelerIndex].segmentList[headIndex].row][travelerList[travelerIndex].segmentList[headIndex].col - 1] == SquareType::EXIT) {
+			return true;
+		} else {
+			return false;
+		}
+	} else {
+		return false;
+	}
+}
 
 //------------------------------------------------------
 #if 0
