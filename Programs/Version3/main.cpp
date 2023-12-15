@@ -378,6 +378,8 @@ void moveTraveler(Traveler traveler) {
         //cout << "first check" << endl;
         
         // Get new direction
+        gridLock.lock();
+        cout << "lock - " << travIndex << "\n";
         getNewDirection(possibleDirections, travIndex);
         if (!possibleDirections.empty()) {
             std::random_device rd;
@@ -391,7 +393,7 @@ void moveTraveler(Traveler traveler) {
                 addNewSegment = true;
                 moveCount = 0;
             }
-
+            cout << "before exit found - " << travIndex << "\n";
             exitFound = checkExit(newDir, travIndex, headIndex);
             if (exitFound) {
                 finishAndTerminateSegment(travIndex);
@@ -402,6 +404,8 @@ void moveTraveler(Traveler traveler) {
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
             moveCount++;
         }
+        cout << "unlock - " << travIndex << "\n";
+        gridLock.unlock();
     }
 
     /**
@@ -426,6 +430,7 @@ void finishAndTerminateSegment(int &travIndex) {
     numLiveThreads--;
 
     cout << "Traveler " << travIndex << " has found the exit!" << '\n';
+    
 }
 
 void getNewDirection(vector<Direction> &possibleDirections, int travIndex) {
@@ -441,8 +446,6 @@ void getNewDirection(vector<Direction> &possibleDirections, int travIndex) {
 void updateCurrentSegment(TravelerSegment &previousSegment, Direction &newDir, bool &addNewSegment, int travIndex) {
     
     previousSegment = travelerList[travIndex].segmentList[headIndex];
-        
-    std::unique_lock<std::mutex> lock(gridLock);
     
     // Updating the head of the segment
     if (newDir == Direction::NORTH) {
@@ -459,8 +462,6 @@ void updateCurrentSegment(TravelerSegment &previousSegment, Direction &newDir, b
         grid[travelerList[travIndex].segmentList[headIndex].row][travelerList[travIndex].segmentList[0].col] = SquareType::TRAVELER;
     }
     
-    gridLock.unlock();
-    
     // Updating the rest of the segment
     travelerList[travIndex].segmentList[headIndex].dir = newDir;
     for(unsigned int i = 1; i < travelerList[travIndex].segmentList.size(); i++) {
@@ -468,9 +469,9 @@ void updateCurrentSegment(TravelerSegment &previousSegment, Direction &newDir, b
         std::swap(previousSegment, travelerList[travIndex].segmentList[i]);
         
         if(i == travelerList[travIndex].segmentList.size() - 1 && !addNewSegment) {
-            std::unique_lock<std::mutex> lock(gridLock); /**< Lock the grid while updating it */
+//            gridLock.lock(); /**< Lock the grid while updating it */
             grid[previousSegment.row][previousSegment.col] = SquareType::FREE_SQUARE;
-            gridLock.unlock();
+//            gridLock.unlock();
         }
     }
     
