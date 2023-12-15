@@ -36,7 +36,7 @@ TravelerSegment newTravelerSegment(const TravelerSegment& currentSeg, bool& canA
 void generateWalls(void);
 void generatePartitions(void);
 void moveTraveler(Traveler traveler);
-void updateCurrentSegment(int &previousRow, int &previousCol, Direction &previousDir, Direction &newDir, bool &addNewSegment, int travIndex);
+void updateCurrentSegment(TravelerSegment &previousSegment, Direction &newDir, bool &addNewSegment, int travIndex);
 void getNewDirection(vector<Direction> &possibleDirections, int travIndex);
 bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex);
 bool checkExit(Direction newDir, int travelerIndex, int segmentIndex);
@@ -363,9 +363,7 @@ void initializeApplication(void)
 void moveTraveler(Traveler traveler) {
 	
 	bool exitFound = false;
-	int previousRow; //previous row
-	int previousCol; //previous col
-	Direction previousDir;
+    TravelerSegment previousSegment;
 	Direction newDir;
 	vector<Direction> possibleDirections;
     unsigned int moveCount = 0;
@@ -384,11 +382,10 @@ void moveTraveler(Traveler traveler) {
             std::mt19937 gen(rd());
             std::uniform_int_distribution<int> distribution(0, (int) possibleDirections.size() - 1);
             
-            //cout << "second check" << endl;
             newDir = possibleDirections[distribution(gen)];
             possibleDirections.clear();
             
-            if (moveCount == movesToGrowNewSegment) {
+            if (moveCount == movesToGrowNewSegment || travelerList[travIndex].segmentList.size() == 1) {
                 addNewSegment = true;
                 moveCount = 0;
             }
@@ -397,7 +394,7 @@ void moveTraveler(Traveler traveler) {
             if (exitFound) {
                 finishAndTerminateSegment(travIndex);
             } else {
-                updateCurrentSegment(previousRow, previousCol, previousDir, newDir, addNewSegment, travIndex);
+                updateCurrentSegment(previousSegment, newDir, addNewSegment, travIndex);
             }
             
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
@@ -421,15 +418,10 @@ void finishAndTerminateSegment(int &travIndex) {
         int tempCol = travelerList[travIndex].segmentList[k].col;
         grid[tempRow][tempCol] = SquareType::FREE_SQUARE;
     }
-    //erasing traveler
-//    travelerList.erase(travelerList.begin() + travIndex); /**< This will change with multiple travelers */
-    travelerList[travIndex].stillAlive = false;
+    
+    travelerList[travIndex].stillAlive = false; /* Removes the traveler from the screen */
     numTravelersDone++;
     numLiveThreads--;
-    
-//    for (size_t i = travIndex; i < travelerList.size(); i++) {
-//        travelerList[i].index -= 1;
-//    }
 
     cout << "Traveler " << travIndex << " has found the exit!" << '\n';
 }
@@ -444,68 +436,43 @@ void getNewDirection(vector<Direction> &possibleDirections, int travIndex) {
     }
 }
 
-void updateCurrentSegment(int &previousRow, int &previousCol, Direction &previousDir, Direction &newDir, bool &addNewSegment, int travIndex) {
-	unsigned int lastSegmentRow;
-    unsigned int lastSegmentCol;
-    Direction lastSegmentDir;
-    TravelerSegment newSegment;
-    size_t segmentSize = travelerList[travIndex].segmentList.size();
-
-    if (addNewSegment) {
-//        lastSegmentRow = travelerList[travIndex].segmentList.back().row;
-//        lastSegmentCol = travelerList[travIndex].segmentList[segmentSize - 1].col;
-//        lastSegmentDir = travelerList[travIndex].segmentList[segmentSize - 1].dir;
-        newSegment = travelerList[travIndex].segmentList.back();
- 		grid[newSegment.row][newSegment.col] = SquareType::TRAVELER;
-
-    }
+void updateCurrentSegment(TravelerSegment &previousSegment, Direction &newDir, bool &addNewSegment, int travIndex) {
     
-	previousRow = travelerList[travIndex].segmentList[0].row;
-	previousCol = travelerList[travIndex].segmentList[0].col;	
-	previousDir = travelerList[travIndex].segmentList[0].dir;
+    previousSegment = travelerList[travIndex].segmentList[headIndex];
+    // Updating the head of the segment
 	if (newDir == Direction::NORTH) {
-		travelerList[travIndex].segmentList[0].row -= 1;
-		grid[travelerList[travIndex].segmentList[0].row][travelerList[travIndex].segmentList[0].col] = SquareType::TRAVELER;
+		travelerList[travIndex].segmentList[headIndex].row -= 1;
+		grid[travelerList[travIndex].segmentList[headIndex].row][travelerList[travIndex].segmentList[0].col] = SquareType::TRAVELER;
 	} else if (newDir == Direction::SOUTH) {
-		travelerList[travIndex].segmentList[0].row += 1;
-		grid[travelerList[travIndex].segmentList[0].row][travelerList[travIndex].segmentList[0].col] = SquareType::TRAVELER;
+		travelerList[travIndex].segmentList[headIndex].row += 1;
+		grid[travelerList[travIndex].segmentList[headIndex].row][travelerList[travIndex].segmentList[0].col] = SquareType::TRAVELER;
 	} else if (newDir == Direction::EAST) {
-		travelerList[travIndex].segmentList[0].col += 1;
-		grid[travelerList[travIndex].segmentList[0].row][travelerList[travIndex].segmentList[0].col] = SquareType::TRAVELER;
+		travelerList[travIndex].segmentList[headIndex].col += 1;
+		grid[travelerList[travIndex].segmentList[headIndex].row][travelerList[travIndex].segmentList[0].col] = SquareType::TRAVELER;
 	} else if (newDir == Direction::WEST) {
-		travelerList[travIndex].segmentList[0].col -= 1;
-		grid[travelerList[travIndex].segmentList[0].row][travelerList[travIndex].segmentList[0].col] = SquareType::TRAVELER;
+		travelerList[travIndex].segmentList[headIndex].col -= 1;
+		grid[travelerList[travIndex].segmentList[headIndex].row][travelerList[travIndex].segmentList[0].col] = SquareType::TRAVELER;
 	}
 	
-	travelerList[travIndex].segmentList[0].dir = newDir;
+    // Updating the rest of the segment
+	travelerList[travIndex].segmentList[headIndex].dir = newDir;
 	for(unsigned int i = 1; i < travelerList[travIndex].segmentList.size(); i++) {
-		int tempRow = travelerList[travIndex].segmentList[i].row;
-		int tempCol = travelerList[travIndex].segmentList[i].col;
-		Direction tempDir = travelerList[travIndex].segmentList[i].dir;
-		travelerList[travIndex].segmentList[i].row = previousRow;
-		travelerList[travIndex].segmentList[i].col = previousCol;
-		travelerList[travIndex].segmentList[i].dir = previousDir;
-		previousRow = tempRow;
-		previousCol = tempCol;
-		previousDir = tempDir;
+        // Update the current segment to the previous and store the current segment in the previous
+        std::swap(previousSegment, travelerList[travIndex].segmentList[i]);
 		
 		if(i == travelerList[travIndex].segmentList.size() - 1 && !addNewSegment) {
-			grid[previousRow][previousCol] = SquareType::FREE_SQUARE;
+			grid[previousSegment.row][previousSegment.col] = SquareType::FREE_SQUARE;
 		}
 	}
     
-    if (travelerList[travIndex].segmentList.size() == 1 && addNewSegment) {
-        grid[previousRow][previousCol] = SquareType::FREE_SQUARE;
-    }
-    
     if (addNewSegment) {
-        travelerList[travIndex].segmentList.push_back(newSegment);
+        travelerList[travIndex].segmentList.push_back(previousSegment);
         addNewSegment = false;
     }
 }
 
 bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex){
-	Direction currentDir = travelerList[travelerIndex].segmentList[0].dir;
+    Direction currentDir = travelerList[travelerIndex].segmentList[segmentIndex].dir;
     int row = travelerList[travelerIndex].segmentList[segmentIndex].row;
     int col = travelerList[travelerIndex].segmentList[segmentIndex].col;
 
