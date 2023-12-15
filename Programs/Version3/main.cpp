@@ -65,6 +65,7 @@ vector<SlidingPartition> partitionList;
 GridPosition    exitPos;    //    location of the exit
 vector<thread> threads; /**< The vector to contain the thread ids */
 bool stillGoing = true;
+mutex lock;
 
 //    travelers' sleep time between moves (in microseconds)
 const int MIN_SLEEP_TIME = 1000;
@@ -491,30 +492,15 @@ bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex)
 
 bool checkExit(Direction newDir, int travelerIndex, int segmentIndex) {
 
+    // Each of these checks the bounds of the map and if the grid space is exit
     if (newDir == Direction::NORTH) {
-        if (travelerList[travelerIndex].segmentList[headIndex].row > 0 && grid[travelerList[travelerIndex].segmentList[headIndex].row - 1][travelerList[travelerIndex].segmentList[headIndex].col] == SquareType::EXIT) {
-            return true;
-        } else {
-            return false;
-        }
+        return travelerList[travelerIndex].segmentList[headIndex].row > 0 && grid[travelerList[travelerIndex].segmentList[headIndex].row - 1][travelerList[travelerIndex].segmentList[headIndex].col] == SquareType::EXIT;
     } else if (newDir == Direction::SOUTH) {
-        if (travelerList[travelerIndex].segmentList[headIndex].row + 1 < numRows && grid[travelerList[travelerIndex].segmentList[headIndex].row + 1][travelerList[travelerIndex].segmentList[headIndex].col] == SquareType::EXIT) {
-            return true;
-        } else {
-            return false;
-        }
+        return travelerList[travelerIndex].segmentList[headIndex].row + 1 < numRows && grid[travelerList[travelerIndex].segmentList[headIndex].row + 1][travelerList[travelerIndex].segmentList[headIndex].col] == SquareType::EXIT;
     } else if (newDir == Direction::EAST) {
-        if (travelerList[travelerIndex].segmentList[headIndex].col + 1 < numCols && grid[travelerList[travelerIndex].segmentList[headIndex].row][travelerList[travelerIndex].segmentList[headIndex].col + 1] == SquareType::EXIT) {
-            return true;
-        } else {
-            return false;
-        }
+        return travelerList[travelerIndex].segmentList[headIndex].col + 1 < numCols && grid[travelerList[travelerIndex].segmentList[headIndex].row][travelerList[travelerIndex].segmentList[headIndex].col + 1] == SquareType::EXIT;
     } else if (newDir == Direction::WEST) {
-        if (travelerList[travelerIndex].segmentList[headIndex].col > 0 && grid[travelerList[travelerIndex].segmentList[headIndex].row][travelerList[travelerIndex].segmentList[headIndex].col - 1] == SquareType::EXIT) {
-            return true;
-        } else {
-            return false;
-        }
+        return travelerList[travelerIndex].segmentList[headIndex].col > 0 && grid[travelerList[travelerIndex].segmentList[headIndex].row][travelerList[travelerIndex].segmentList[headIndex].col - 1] == SquareType::EXIT;
     } else {
         return false;
     }
