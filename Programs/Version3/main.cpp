@@ -151,7 +151,6 @@ void handleKeyboardEvent(unsigned char c, int x, int y)
             for (auto& thread: threads) {
                 thread.join();
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(200));
             exit(0);
             break;
 
@@ -400,7 +399,7 @@ void moveTraveler(Traveler traveler) {
         }
         
         gridLock.unlock();
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        std::this_thread::sleep_for(std::chrono::microseconds(travelerSleepTime));
     }
 
     /**
@@ -462,7 +461,7 @@ void updateCurrentSegment(TravelerSegment &previousSegment, Direction &newDir, b
     for(unsigned int i = 1; i < travelerList[travIndex].segmentList.size(); i++) {
         // Update the current segment to the previous and store the current segment in the previous
         std::swap(previousSegment, travelerList[travIndex].segmentList[i]);
-        
+         
         if(i == travelerList[travIndex].segmentList.size() - 1 && !addNewSegment) {
             grid[previousSegment.row][previousSegment.col] = SquareType::FREE_SQUARE;
         }
