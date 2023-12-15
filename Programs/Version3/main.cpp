@@ -16,6 +16,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <climits>
+#include <mutex>
 //
 #include "gl_frontEnd.h"
 
@@ -65,7 +66,7 @@ vector<SlidingPartition> partitionList;
 GridPosition    exitPos;    //    location of the exit
 vector<thread> threads; /**< The vector to contain the thread ids */
 bool stillGoing = true;
-mutex lock;
+mutex gridLock;
 
 //    travelers' sleep time between moves (in microseconds)
 const int MIN_SLEEP_TIME = 1000;
@@ -440,6 +441,9 @@ void getNewDirection(vector<Direction> &possibleDirections, int travIndex) {
 void updateCurrentSegment(TravelerSegment &previousSegment, Direction &newDir, bool &addNewSegment, int travIndex) {
     
     previousSegment = travelerList[travIndex].segmentList[headIndex];
+        
+    std::unique_lock<std::mutex> lock(gridLock);
+    
     // Updating the head of the segment
     if (newDir == Direction::NORTH) {
         travelerList[travIndex].segmentList[headIndex].row -= 1;
@@ -455,6 +459,8 @@ void updateCurrentSegment(TravelerSegment &previousSegment, Direction &newDir, b
         grid[travelerList[travIndex].segmentList[headIndex].row][travelerList[travIndex].segmentList[0].col] = SquareType::TRAVELER;
     }
     
+    gridLock.unlock();
+    
     // Updating the rest of the segment
     travelerList[travIndex].segmentList[headIndex].dir = newDir;
     for(unsigned int i = 1; i < travelerList[travIndex].segmentList.size(); i++) {
@@ -462,7 +468,9 @@ void updateCurrentSegment(TravelerSegment &previousSegment, Direction &newDir, b
         std::swap(previousSegment, travelerList[travIndex].segmentList[i]);
         
         if(i == travelerList[travIndex].segmentList.size() - 1 && !addNewSegment) {
+            std::unique_lock<std::mutex> lock(gridLock); /**< Lock the grid while updating it */
             grid[previousSegment.row][previousSegment.col] = SquareType::FREE_SQUARE;
+            gridLock.unlock();
         }
     }
     
