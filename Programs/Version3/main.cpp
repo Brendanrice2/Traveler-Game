@@ -373,13 +373,9 @@ void moveTraveler(Traveler traveler) {
     int travIndex = traveler.index;
     
     while(stillGoing && !exitFound) {
-    
-
-        //cout << "first check" << endl;
         
         // Get new direction
         gridLock.lock();
-        cout << "lock - " << travIndex << "\n";
         getNewDirection(possibleDirections, travIndex);
         if (!possibleDirections.empty()) {
             std::random_device rd;
@@ -393,19 +389,18 @@ void moveTraveler(Traveler traveler) {
                 addNewSegment = true;
                 moveCount = 0;
             }
-            cout << "before exit found - " << travIndex << "\n";
+            
             exitFound = checkExit(newDir, travIndex, headIndex);
             if (exitFound) {
                 finishAndTerminateSegment(travIndex);
             } else {
                 updateCurrentSegment(previousSegment, newDir, addNewSegment, travIndex);
             }
-            
-            std::this_thread::sleep_for(std::chrono::milliseconds(200));
             moveCount++;
         }
-        cout << "unlock - " << travIndex << "\n";
+        
         gridLock.unlock();
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
     }
 
     /**
@@ -469,9 +464,7 @@ void updateCurrentSegment(TravelerSegment &previousSegment, Direction &newDir, b
         std::swap(previousSegment, travelerList[travIndex].segmentList[i]);
         
         if(i == travelerList[travIndex].segmentList.size() - 1 && !addNewSegment) {
-//            gridLock.lock(); /**< Lock the grid while updating it */
             grid[previousSegment.row][previousSegment.col] = SquareType::FREE_SQUARE;
-//            gridLock.unlock();
         }
     }
     
