@@ -67,6 +67,7 @@ GridPosition    exitPos;    //    location of the exit
 vector<thread> threads; /**< The vector to contain the thread ids */
 bool stillGoing = true;
 mutex gridLock;
+vector<mutex*> travelerLocks;
 
 //    travelers' sleep time between moves (in microseconds)
 const int MIN_SLEEP_TIME = 1000;
@@ -151,7 +152,11 @@ void handleKeyboardEvent(unsigned char c, int x, int y)
             for (auto& thread: threads) {
                 thread.join();
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+            
+            // Free the memory for the mutexes
+            for (int i = 0; i < travelerLocks.size(); i++) {
+                delete travelerLocks[i];
+            }
             exit(0);
             break;
 
@@ -360,6 +365,12 @@ void initializeApplication(void)
         threads.push_back(thread(moveTraveler, travelerList[i]));
         numLiveThreads++;
     }
+    
+    // Initialize the traveler locks
+    travelerLocks.resize(travelerList.size());
+    for (int i = 0; i < travelerLocks.size(); i++) {
+        travelerLocks[i] = new mutex();
+    }
 }
 
 void moveTraveler(Traveler traveler) {
@@ -400,7 +411,7 @@ void moveTraveler(Traveler traveler) {
         }
         
         gridLock.unlock();
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        std::this_thread::sleep_for(std::chrono::microseconds(travelerSleepTime));
     }
 
     /**
