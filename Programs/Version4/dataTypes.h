@@ -111,6 +111,11 @@ struct SlidingPartition
      */
     std::vector<GridPosition> blockList;
 
+    int index;
+
+    /**    Where the partition is located within the partitionList vector
+     */
+
 };
 
 
