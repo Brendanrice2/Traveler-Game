@@ -151,7 +151,6 @@ void handleKeyboardEvent(unsigned char c, int x, int y)
             for (auto& thread: threads) {
                 thread.join();
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(200));
             exit(0);
             break;
 
@@ -400,7 +399,7 @@ void moveTraveler(Traveler traveler) {
         }
         
         gridLock.unlock();
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        std::this_thread::sleep_for(std::chrono::microseconds(travelerSleepTime));
     }
 
     /**
