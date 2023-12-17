@@ -426,9 +426,11 @@ void moveTraveler(Traveler traveler) {
 void finishAndTerminateSegment(int &travIndex) {
     //Freeing all traveler spaces
     for(unsigned int k = 0; k < travelerList[travIndex].segmentList.size(); k++) {
+        travelerLocks[travIndex]->lock();
         int tempRow = travelerList[travIndex].segmentList[k].row;
         int tempCol = travelerList[travIndex].segmentList[k].col;
         grid[tempRow][tempCol] = SquareType::FREE_SQUARE;
+        travelerLocks[travIndex]->unlock();
     }
     
     travelerList[travIndex].stillAlive = false; /* Removes the traveler from the screen */
@@ -453,6 +455,7 @@ void updateCurrentSegment(TravelerSegment &previousSegment, Direction &newDir, b
     
     previousSegment = travelerList[travIndex].segmentList[headIndex];
     
+    travelerLocks[travIndex]->lock();
     // Updating the head of the segment
     if (newDir == Direction::NORTH) {
         travelerList[travIndex].segmentList[headIndex].row -= 1;
@@ -467,12 +470,15 @@ void updateCurrentSegment(TravelerSegment &previousSegment, Direction &newDir, b
         travelerList[travIndex].segmentList[headIndex].col -= 1;
         grid[travelerList[travIndex].segmentList[headIndex].row][travelerList[travIndex].segmentList[0].col] = SquareType::TRAVELER;
     }
+    travelerLocks[travIndex]->unlock();
     
     // Updating the rest of the segment
     travelerList[travIndex].segmentList[headIndex].dir = newDir;
     for(unsigned int i = 1; i < travelerList[travIndex].segmentList.size(); i++) {
+        travelerLocks[travIndex]->lock();
         // Update the current segment to the previous and store the current segment in the previous
         std::swap(previousSegment, travelerList[travIndex].segmentList[i]);
+        travelerLocks[travIndex]->unlock();
         
         if(i == travelerList[travIndex].segmentList.size() - 1 && !addNewSegment) {
             grid[previousSegment.row][previousSegment.col] = SquareType::FREE_SQUARE;
@@ -480,8 +486,10 @@ void updateCurrentSegment(TravelerSegment &previousSegment, Direction &newDir, b
     }
     
     if (addNewSegment) {
+        travelerLocks[travIndex]->lock();
         travelerList[travIndex].segmentList.push_back(previousSegment);
         addNewSegment = false;
+        travelerLocks[travIndex]->unlock();
     }
 }
 
