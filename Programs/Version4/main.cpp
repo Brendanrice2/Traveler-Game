@@ -236,6 +236,12 @@ int main(int argc, char* argv[])
     }
     numLiveThreads = 0;
     numTravelersDone = 0;
+    
+    // Initialize the traveler locks
+    travelerLocks.resize(numTravelers);
+    for (int i = 0; i < numTravelers; i++) {
+        travelerLocks[i] = new mutex();
+    }
 
     //    Even though we extracted the relevant information from the argument
     //    list, I still need to pass argc and argv to the front-end init
@@ -364,12 +370,6 @@ void initializeApplication(void)
     for(unsigned int i = 0; i < numTravelers; i++) {
         threads.push_back(thread(moveTraveler, travelerList[i]));
         numLiveThreads++;
-    }
-    
-    // Initialize the traveler locks
-    travelerLocks.resize(travelerList.size());
-    for (int i = 0; i < travelerLocks.size(); i++) {
-        travelerLocks[i] = new mutex();
     }
 }
 
