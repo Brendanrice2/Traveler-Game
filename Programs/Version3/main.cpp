@@ -461,7 +461,7 @@ void updateCurrentSegment(TravelerSegment &previousSegment, Direction &newDir, b
     for(unsigned int i = 1; i < travelerList[travIndex].segmentList.size(); i++) {
         // Update the current segment to the previous and store the current segment in the previous
         std::swap(previousSegment, travelerList[travIndex].segmentList[i]);
-         
+        
         if(i == travelerList[travIndex].segmentList.size() - 1 && !addNewSegment) {
             grid[previousSegment.row][previousSegment.col] = SquareType::FREE_SQUARE;
         }
