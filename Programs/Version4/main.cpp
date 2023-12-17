@@ -41,6 +41,7 @@ void moveTraveler(Traveler traveler);
 void updateCurrentSegment(TravelerSegment &previousSegment, Direction &newDir, bool &addNewSegment, int travIndex);
 void updateSegHead(int travIndex, Direction newDir);
 string getPartitionStyle(Direction newdir, int travIndex);
+void vertNS(Direction dir, string partitionStyle, int travIndex);
 void getNewDirection(vector<Direction> &possibleDirections, int travIndex);
 bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex);
 bool checkExit(Direction newDir, int travelerIndex, int segmentIndex);
@@ -365,6 +366,16 @@ void initializeApplication(void)
         delete []travelerColor[k];
     delete []travelerColor;
 
+    /*
+    cout << partitionList.size() << endl;
+    for(unsigned int i = 0; i < partitionList.size(); i++){
+        cout << "huh\n";
+        cout << "Partition: " << i << " List - ";
+        for(unsigned int j = 0; j < partitionList[i].blockList.size(); j++){
+            cout << partitionList[i].blockList[j].row << ", " << partitionList[i].blockList[j].col << " | ";
+        }
+    }*/
+
     for(unsigned int i = 0; i < numTravelers; i++) {
         threads.push_back(thread(moveTraveler, travelerList[i]));
         numLiveThreads++;
@@ -548,6 +559,26 @@ string getPartitionStyle(Direction newDir, int travIndex){
     return result;
 }
 
+void vertNS(Direction dir, string partitionStyle, int travIndex) { 
+    if (dir == Direction::NORTH){
+        if(partitionStyle == "VERTICAL"){
+            
+        }
+        else if(partitionStyle == "HORIZONTAL"){
+            //move
+        }
+    }
+
+    else if(dir == Direction::SOUTH){
+        if(partitionStyle == "VERTICAL"){
+            //move
+        }
+        else if(partitionStyle == "HORIZONTAL"){
+            //move
+        }
+    }
+}
+
 //Updates the segment head
 void updateSegHead(int travIndex, Direction newDir){
     if (newDir == Direction::NORTH) {
@@ -571,13 +602,13 @@ bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex)
     int col = travelerList[travelerIndex].segmentList[segmentIndex].col;
 
     if (newDir == Direction::NORTH && currentDir != Direction::SOUTH) {
-        return (row > 0 && grid[row - 1][col] == SquareType::FREE_SQUARE) || (row > 0 && grid[row - 1][col] == SquareType::EXIT || grid[row - 1][col] == SquareType::VERTICAL_PARTITION || grid[row - 1][col] == SquareType::HORIZONTAL_PARTITION);
+        return (row > 0 && grid[row - 1][col] == SquareType::FREE_SQUARE) || (row > 0 && grid[row - 1][col] == SquareType::EXIT) || (grid[row - 1][col] == SquareType::VERTICAL_PARTITION) || (grid[row - 1][col] == SquareType::HORIZONTAL_PARTITION);
     } else if (newDir == Direction::SOUTH && currentDir != Direction::NORTH) {
-        return (row + 1 < static_cast<int>(numRows) && grid[row + 1][col] == SquareType::FREE_SQUARE) || (row + 1 < static_cast<int>(numRows) && grid[row + 1][col] == SquareType::EXIT || grid[row + 1][col] == SquareType::VERTICAL_PARTITION || grid[row + 1][col] == SquareType::HORIZONTAL_PARTITION);
+        return (row + 1 < static_cast<int>(numRows) && grid[row + 1][col] == SquareType::FREE_SQUARE) || (row + 1 < static_cast<int>(numRows) && grid[row + 1][col] == SquareType::EXIT) || (grid[row + 1][col] == SquareType::VERTICAL_PARTITION) || (grid[row + 1][col] == SquareType::HORIZONTAL_PARTITION);
     } else if (newDir == Direction::EAST && currentDir != Direction::WEST) {
-        return (col + 1 < static_cast<int>(numCols) && grid[row][col + 1] == SquareType::FREE_SQUARE) || (col + 1 < static_cast<int>(numCols) && grid[row][col + 1] == SquareType::EXIT || grid[row][col + 1] == SquareType::VERTICAL_PARTITION || grid[row][col + 1] == SquareType::HORIZONTAL_PARTITION);
+        return (col + 1 < static_cast<int>(numCols) && grid[row][col + 1] == SquareType::FREE_SQUARE) || (col + 1 < static_cast<int>(numCols) && grid[row][col + 1] == SquareType::EXIT) || (grid[row][col + 1] == SquareType::VERTICAL_PARTITION) || (grid[row][col + 1] == SquareType::HORIZONTAL_PARTITION);
     } else if (newDir == Direction::WEST && currentDir != Direction::EAST) {
-        return (col > 0 && grid[row][col - 1] == SquareType::FREE_SQUARE) || (col > 0 && grid[row][col - 1] == SquareType::EXIT || grid[row][col - 1] == SquareType::VERTICAL_PARTITION || grid[row][col - 1] == SquareType::HORIZONTAL_PARTITION);
+        return (col > 0 && grid[row][col - 1] == SquareType::FREE_SQUARE) || (col > 0 && grid[row][col - 1] == SquareType::EXIT) || (grid[row][col - 1] == SquareType::VERTICAL_PARTITION) || (grid[row][col - 1] == SquareType::HORIZONTAL_PARTITION);
     } else {
         return false;
     }
