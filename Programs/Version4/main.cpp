@@ -17,6 +17,7 @@
 #include <ctime>
 #include <climits>
 #include <mutex>
+#include <string>
 //
 #include "gl_frontEnd.h"
 
@@ -38,6 +39,8 @@ void generateWalls(void);
 void generatePartitions(void);
 void moveTraveler(Traveler traveler);
 void updateCurrentSegment(TravelerSegment &previousSegment, Direction &newDir, bool &addNewSegment, int travIndex);
+void updateSegHead(int travIndex, Direction newDir);
+string getPartitionStyle(Direction newdir, int travIndex);
 void getNewDirection(vector<Direction> &possibleDirections, int travIndex);
 bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex);
 bool checkExit(Direction newDir, int travelerIndex, int segmentIndex);
@@ -54,8 +57,8 @@ void finishAndTerminateSegment(int &travIndex);
 //-------------------------------------
 //    The state grid and its dimensions (arguments to the program)
 SquareType** grid;
-unsigned int numRows = 0;    //    height of the grid
-unsigned int numCols = 0;    //    width
+unsigned int numRows = 0;   //    height of the grid
+unsigned int numCols = 0;   //    width
 unsigned int numTravelers = 0;    //    initial number
 unsigned int movesToGrowNewSegment = 0;
 unsigned int numTravelersDone = 0;
@@ -67,6 +70,8 @@ GridPosition    exitPos;    //    location of the exit
 vector<thread> threads; /**< The vector to contain the thread ids */
 bool stillGoing = true;
 mutex gridLock;
+vector<mutex*> travelerLocks;
+int partCount = 0;   //Counter for the number of partitions
 
 //    travelers' sleep time between moves (in microseconds)
 const int MIN_SLEEP_TIME = 1000;
@@ -231,6 +236,10 @@ int main(int argc, char* argv[])
     }
     numLiveThreads = 0;
     numTravelersDone = 0;
+    travelerLocks.resize(numTravelers);
+    for(unsigned int i = 0; i < numTravelers; i++){
+        travelerLocks[i] = new mutex();
+    }
 
     //    Even though we extracted the relevant information from the argument
     //    list, I still need to pass argc and argv to the front-end init
@@ -415,9 +424,11 @@ void moveTraveler(Traveler traveler) {
 void finishAndTerminateSegment(int &travIndex) {
     //Freeing all traveler spaces
     for(unsigned int k = 0; k < travelerList[travIndex].segmentList.size(); k++) {
+        travelerLocks[travIndex]->lock();
         int tempRow = travelerList[travIndex].segmentList[k].row;
         int tempCol = travelerList[travIndex].segmentList[k].col;
         grid[tempRow][tempCol] = SquareType::FREE_SQUARE;
+        travelerLocks[travIndex]->unlock();
     }
     
     travelerList[travIndex].stillAlive = false; /* Removes the traveler from the screen */
@@ -441,20 +452,36 @@ void getNewDirection(vector<Direction> &possibleDirections, int travIndex) {
 void updateCurrentSegment(TravelerSegment &previousSegment, Direction &newDir, bool &addNewSegment, int travIndex) {
     
     previousSegment = travelerList[travIndex].segmentList[headIndex];
-    
+    string partitionStyle = getPartitionStyle(newDir, travIndex);
     // Updating the head of the segment
     if (newDir == Direction::NORTH) {
-        travelerList[travIndex].segmentList[headIndex].row -= 1;
-        grid[travelerList[travIndex].segmentList[headIndex].row][travelerList[travIndex].segmentList[0].col] = SquareType::TRAVELER;
+        if (partitionStyle == "VERTICAL") {
+            //move
+        } else if (partitionStyle == "HORIZONTAL") {
+            //move
+        } 
+        updateSegHead(travIndex, newDir);
     } else if (newDir == Direction::SOUTH) {
-        travelerList[travIndex].segmentList[headIndex].row += 1;
-        grid[travelerList[travIndex].segmentList[headIndex].row][travelerList[travIndex].segmentList[0].col] = SquareType::TRAVELER;
+        if (partitionStyle == "VERTICAL") {
+            //move
+        } else if (partitionStyle == "HORIZONTAL") {
+            //move
+        }
+        updateSegHead(travIndex, newDir);
     } else if (newDir == Direction::EAST) {
-        travelerList[travIndex].segmentList[headIndex].col += 1;
-        grid[travelerList[travIndex].segmentList[headIndex].row][travelerList[travIndex].segmentList[0].col] = SquareType::TRAVELER;
+        if (partitionStyle == "VERTICAL") {
+            //move
+        } else if (partitionStyle == "HORIZONTAL") {
+            //move
+        }
+        updateSegHead(travIndex, newDir);
     } else if (newDir == Direction::WEST) {
-        travelerList[travIndex].segmentList[headIndex].col -= 1;
-        grid[travelerList[travIndex].segmentList[headIndex].row][travelerList[travIndex].segmentList[0].col] = SquareType::TRAVELER;
+        if (partitionStyle == "VERTICAL") {
+            //move
+        } else if (partitionStyle == "HORIZONTAL") {
+            //move
+        }
+        updateSegHead(travIndex, newDir);
     }
     
     // Updating the rest of the segment
@@ -474,19 +501,83 @@ void updateCurrentSegment(TravelerSegment &previousSegment, Direction &newDir, b
     }
 }
 
+// Returns the partition style of the next block
+string getPartitionStyle(Direction newDir, int travIndex){
+    string result;
+    if(newDir == Direction::NORTH){
+        if (grid[travelerList[travIndex].segmentList[headIndex].row - 1][travelerList[travIndex].segmentList[headIndex].col] == SquareType::VERTICAL_PARTITION) {
+            result = "VERTICAL";
+        } else if (grid[travelerList[travIndex].segmentList[headIndex].row - 1][travelerList[travIndex].segmentList[headIndex].col] == SquareType::HORIZONTAL_PARTITION) {
+            result = "HORIZONTAL";
+        }
+        else{
+            result = "NONE";
+        }
+    }
+    else if(newDir == Direction::SOUTH){
+        if (grid[travelerList[travIndex].segmentList[headIndex].row + 1][travelerList[travIndex].segmentList[headIndex].col] == SquareType::VERTICAL_PARTITION) {
+            result = "VERTICAL";
+        } else if (grid[travelerList[travIndex].segmentList[headIndex].row + 1][travelerList[travIndex].segmentList[headIndex].col] == SquareType::HORIZONTAL_PARTITION) {
+            result = "HORIZONTAL";
+        }
+        else{
+            result = "NONE";
+        }
+    }
+    else if(newDir == Direction::EAST){
+        if (grid[travelerList[travIndex].segmentList[headIndex].row][travelerList[travIndex].segmentList[headIndex].col - 1] == SquareType::VERTICAL_PARTITION) {
+            result = "VERTICAL";
+        } else if (grid[travelerList[travIndex].segmentList[headIndex].row][travelerList[travIndex].segmentList[headIndex].col - 1] == SquareType::HORIZONTAL_PARTITION) {
+            result = "HORIZONTAL";
+        }
+        else{
+            result = "NONE";
+        }
+    }
+    else if (newDir == Direction::WEST){
+        if (grid[travelerList[travIndex].segmentList[headIndex].row][travelerList[travIndex].segmentList[headIndex].col + 1] == SquareType::VERTICAL_PARTITION) {
+            result = "VERTICAL";
+        } else if (grid[travelerList[travIndex].segmentList[headIndex].row][travelerList[travIndex].segmentList[headIndex].col + 1] == SquareType::HORIZONTAL_PARTITION) {
+            result = "HORIZONTAL";
+        }
+        else{
+            result = "NONE";
+        }
+    }
+
+    return result;
+}
+
+//Updates the segment head
+void updateSegHead(int travIndex, Direction newDir){
+    if (newDir == Direction::NORTH) {
+        travelerList[travIndex].segmentList[headIndex].row -= 1;
+        grid[travelerList[travIndex].segmentList[headIndex].row][travelerList[travIndex].segmentList[0].col] = SquareType::TRAVELER;
+    } else if (newDir == Direction::SOUTH) {
+        travelerList[travIndex].segmentList[headIndex].row += 1;
+        grid[travelerList[travIndex].segmentList[headIndex].row][travelerList[travIndex].segmentList[0].col] = SquareType::TRAVELER;
+    } else if (newDir == Direction::EAST) {
+        travelerList[travIndex].segmentList[headIndex].col += 1;
+        grid[travelerList[travIndex].segmentList[headIndex].row][travelerList[travIndex].segmentList[0].col] = SquareType::TRAVELER;
+    } else if (newDir == Direction::WEST) {
+        travelerList[travIndex].segmentList[headIndex].col -= 1;
+        grid[travelerList[travIndex].segmentList[headIndex].row][travelerList[travIndex].segmentList[0].col] = SquareType::TRAVELER;
+    }
+}
+
 bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex){
     Direction currentDir = travelerList[travelerIndex].segmentList[segmentIndex].dir;
     int row = travelerList[travelerIndex].segmentList[segmentIndex].row;
     int col = travelerList[travelerIndex].segmentList[segmentIndex].col;
 
     if (newDir == Direction::NORTH && currentDir != Direction::SOUTH) {
-        return (row > 0 && grid[row - 1][col] == SquareType::FREE_SQUARE) || (row > 0 && grid[row - 1][col] == SquareType::EXIT);
+        return (row > 0 && grid[row - 1][col] == SquareType::FREE_SQUARE) || (row > 0 && grid[row - 1][col] == SquareType::EXIT || grid[row - 1][col] == SquareType::VERTICAL_PARTITION || grid[row - 1][col] == SquareType::HORIZONTAL_PARTITION);
     } else if (newDir == Direction::SOUTH && currentDir != Direction::NORTH) {
-        return (row + 1 < static_cast<int>(numRows) && grid[row + 1][col] == SquareType::FREE_SQUARE) || (row + 1 < static_cast<int>(numRows) && grid[row + 1][col] == SquareType::EXIT);
+        return (row + 1 < static_cast<int>(numRows) && grid[row + 1][col] == SquareType::FREE_SQUARE) || (row + 1 < static_cast<int>(numRows) && grid[row + 1][col] == SquareType::EXIT || grid[row + 1][col] == SquareType::VERTICAL_PARTITION || grid[row + 1][col] == SquareType::HORIZONTAL_PARTITION);
     } else if (newDir == Direction::EAST && currentDir != Direction::WEST) {
-        return (col + 1 < static_cast<int>(numCols) && grid[row][col + 1] == SquareType::FREE_SQUARE) || (col + 1 < static_cast<int>(numCols) && grid[row][col + 1] == SquareType::EXIT);
+        return (col + 1 < static_cast<int>(numCols) && grid[row][col + 1] == SquareType::FREE_SQUARE) || (col + 1 < static_cast<int>(numCols) && grid[row][col + 1] == SquareType::EXIT || grid[row][col + 1] == SquareType::VERTICAL_PARTITION || grid[row][col + 1] == SquareType::HORIZONTAL_PARTITION);
     } else if (newDir == Direction::WEST && currentDir != Direction::EAST) {
-        return (col > 0 && grid[row][col - 1] == SquareType::FREE_SQUARE) || (col > 0 && grid[row][col - 1] == SquareType::EXIT);
+        return (col > 0 && grid[row][col - 1] == SquareType::FREE_SQUARE) || (col > 0 && grid[row][col - 1] == SquareType::EXIT || grid[row][col - 1] == SquareType::VERTICAL_PARTITION || grid[row][col - 1] == SquareType::HORIZONTAL_PARTITION);
     } else {
         return false;
     }
@@ -791,6 +882,9 @@ void generatePartitions(void)
                 {
                     SlidingPartition part;
                     part.isVertical = false;
+                    part.index = partCount;
+                    partCount++;
+                    
                     for (unsigned int col=startCol, i=0; i<length && goodPart; i++, col++)
                     {
                         grid[row][col] = SquareType::HORIZONTAL_PARTITION;
