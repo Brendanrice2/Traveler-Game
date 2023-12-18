@@ -468,7 +468,7 @@ void checkIfSpaceIsPartition(Direction &newDir, int travIndex, bool &partitionIs
             findPartitionsIndex(newDir, partitionIndex, travIndex); /* Find partitions index */
             size_t lengthOfPartition = partitionList[partitionIndex].blockList.size();
             
-            if ((partitionList[partitionIndex].blockList[lengthOfPartition - 1].row < numRows - 1) && (grid[partitionList[partitionIndex].blockList[lengthOfPartition - 1].row + 1][partitionList[partitionIndex].blockList[lengthOfPartition - 1].col]) == SquareType::FREE_SQUARE) {
+            if ((partitionList[partitionIndex].blockList[lengthOfPartition - 1].row + 1 < numRows) && (grid[partitionList[partitionIndex].blockList[lengthOfPartition - 1].row + 1][partitionList[partitionIndex].blockList[lengthOfPartition - 1].col]) == SquareType::FREE_SQUARE) {
                 
 //                cout << "grid row: " << (partitionList[partitionIndex].blockList[headIndex].row - 1) << ", grid col: " << partitionList[partitionIndex].blockList[headIndex].col << '\n';
                 partitionIsNotBlocked = true;
@@ -512,13 +512,13 @@ void movePartition(Direction &newDir, int &partitionIndex) {
             }
         }
     } else if (newDir == Direction::SOUTH) {
-        for (size_t blockListIndex = 0; blockListIndex < partitionList[partitionIndex].blockList.size(); blockListIndex++) {
+        for (int blockListIndex = static_cast<int>(partitionList[partitionIndex].blockList.size() - 1); blockListIndex >= 0; blockListIndex--) {
             partitionList[partitionIndex].blockList[blockListIndex].row += 1;
             grid[partitionList[partitionIndex].blockList[blockListIndex].row][partitionList[partitionIndex].blockList[blockListIndex].col] = SquareType::VERTICAL_PARTITION;
             
             // Update the last element in the block list to a free square
-            if (blockListIndex == partitionList[partitionIndex].blockList.size() - 1) {
-                grid[partitionList[partitionIndex].blockList[blockListIndex].row + 1][partitionList[partitionIndex].blockList[headIndex].col] = SquareType::FREE_SQUARE;
+            if (blockListIndex == headIndex) {
+                grid[partitionList[partitionIndex].blockList[blockListIndex].row - 1][partitionList[partitionIndex].blockList[headIndex].col] = SquareType::FREE_SQUARE;
             }
         }
     }
