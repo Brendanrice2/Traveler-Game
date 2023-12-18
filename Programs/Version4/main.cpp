@@ -444,7 +444,10 @@ void checkIfSpaceIsPartition(Direction &newDir, int travIndex) {
     if (newDir == Direction::NORTH) {
         if (grid[travelerList[travIndex].segmentList[headIndex].row - 1][travelerList[travIndex].segmentList[headIndex].col] == SquareType::VERTICAL_PARTITION) {
             findPartitionsIndex(newDir, partitionIndex, travIndex); /* Find partitions index */
-            if (partitionList[partitionIndex].blockList[headIndex].row > 0) {
+            if (partitionList[partitionIndex].blockList[headIndex].row > 0 && (grid[partitionList[partitionIndex].blockList[headIndex].row - 1][partitionList[partitionIndex].blockList[headIndex].col]) == SquareType::FREE_SQUARE) {
+                
+                cout << "grid row: " << (partitionList[partitionIndex].blockList[headIndex].row - 1) << ", grid col: " << partitionList[partitionIndex].blockList[headIndex].col << '\n';
+                
                 movePartition(newDir, partitionIndex); /* Move partition */
             }
         }
@@ -472,7 +475,7 @@ void movePartition(Direction &newDir, int &partitionIndex) {
      * If true, move partition up one
      */
     
-    if (newDir == Direction::NORTH && (grid[partitionList[partitionIndex].blockList[headIndex].row - 1][partitionList[partitionIndex].blockList[headIndex].col]) == SquareType::FREE_SQUARE) {
+    if (newDir == Direction::NORTH) {
         for (size_t blockListIndex = 0; blockListIndex < partitionList[partitionIndex].blockList.size(); blockListIndex++) {
             partitionList[partitionIndex].blockList[blockListIndex].row -= 1;
             grid[partitionList[partitionIndex].blockList[blockListIndex].row][partitionList[partitionIndex].blockList[blockListIndex].col] = SquareType::VERTICAL_PARTITION;
