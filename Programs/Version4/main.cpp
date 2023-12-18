@@ -370,10 +370,8 @@ void initializeApplication(void)
         travelerLocks[i] = new mutex();
     }
     
-    int indexCounter = 0;
-    for (SlidingPartition part : partitionList) {
-        part.index = indexCounter;
-        indexCounter++;
+    for (size_t x = 0; x < partitionList.size(); x++) {
+        partitionList[x].index = x;
     }
 
     for(unsigned int i = 0; i < numTravelers; i++) {
@@ -443,10 +441,12 @@ void checkIfSpaceIsPartition(Direction &newDir, int travIndex) {
     int partitionIndex;
     
     // Checking North Vertical
-    if (newDir == Direction::NORTH && partitionList[0].blockList[headIndex].row > 0) {
+    if (newDir == Direction::NORTH) {
         if (grid[travelerList[travIndex].segmentList[headIndex].row - 1][travelerList[travIndex].segmentList[headIndex].col] == SquareType::VERTICAL_PARTITION) {
             findPartitionsIndex(newDir, partitionIndex, travIndex); /* Find partitions index */
-            movePartition(newDir, partitionIndex); /* Move partition */
+            if (partitionList[partitionIndex].blockList[headIndex].row > 0) {
+                movePartition(newDir, partitionIndex); /* Move partition */
+            }
         }
     }
 }
