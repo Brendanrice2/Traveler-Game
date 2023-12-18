@@ -42,7 +42,7 @@ void getNewDirection(vector<Direction> &possibleDirections, int travIndex);
 bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex);
 bool checkExit(Direction newDir, int travelerIndex, int segmentIndex);
 void finishAndTerminateSegment(int &travIndex);
-void checkIfSpaceIsPartition(Direction &newDir, int travIndex);
+void checkIfSpaceIsPartition(Direction &newDir, int travIndex, bool &partitionIsNotBlocked);
 void findPartitionsIndex(Direction &newDir, int &index, int &travIndex);
 void movePartition(Direction &newDir, int &partitionIndex);
 
@@ -389,6 +389,7 @@ void moveTraveler(Traveler traveler) {
     unsigned int moveCount = 0;
     bool addNewSegment = false;
     int travIndex = traveler.index;
+    bool partitionIsNotBlocked = true;
     // Seed the RNG
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -405,7 +406,7 @@ void moveTraveler(Traveler traveler) {
             possibleDirections.clear();
             
             /* Check if partition is in the way */
-            checkIfSpaceIsPartition(newDir, travIndex);
+            checkIfSpaceIsPartition(newDir, travIndex, partitionIsNotBlocked);
             
             if (moveCount == movesToGrowNewSegment || travelerList[travIndex].segmentList.size() == 1) {
                 addNewSegment = true;
@@ -416,7 +417,11 @@ void moveTraveler(Traveler traveler) {
             if (exitFound) {
                 finishAndTerminateSegment(travIndex);
             } else {
-                updateCurrentSegment(previousSegment, newDir, addNewSegment, travIndex);
+                if (partitionIsNotBlocked) { /**< The next move might be where a partition is, but if the partition is blocked, then the traveler should not move there */
+                    updateCurrentSegment(previousSegment, newDir, addNewSegment, travIndex);
+                } else {
+                    partitionIsNotBlocked = true; /**< Reset for next move */
+                }
             }
             moveCount++;
         }
@@ -437,7 +442,7 @@ void moveTraveler(Traveler traveler) {
 /**
     This function checks if the new direction is where a partition is already located.
  */
-void checkIfSpaceIsPartition(Direction &newDir, int travIndex) {
+void checkIfSpaceIsPartition(Direction &newDir, int travIndex, bool &partitionIsNotBlocked) {
     int partitionIndex;
     
     // Checking North Vertical
@@ -447,8 +452,10 @@ void checkIfSpaceIsPartition(Direction &newDir, int travIndex) {
             if (partitionList[partitionIndex].blockList[headIndex].row > 0 && (grid[partitionList[partitionIndex].blockList[headIndex].row - 1][partitionList[partitionIndex].blockList[headIndex].col]) == SquareType::FREE_SQUARE) {
                 
                 cout << "grid row: " << (partitionList[partitionIndex].blockList[headIndex].row - 1) << ", grid col: " << partitionList[partitionIndex].blockList[headIndex].col << '\n';
-                
+                partitionIsNotBlocked = true;
                 movePartition(newDir, partitionIndex); /* Move partition */
+            } else {
+                partitionIsNotBlocked = false;
             }
         }
     }
