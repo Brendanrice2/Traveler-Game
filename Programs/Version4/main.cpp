@@ -445,7 +445,7 @@ void moveTraveler(Traveler traveler) {
 void checkIfSpaceIsPartition(Direction &newDir, int travIndex, bool &partitionIsNotBlocked) {
     int partitionIndex;
     
-    if (newDir == Direction::NORTH) {
+    if (newDir == Direction::NORTH && travelerList[travIndex].segmentList[headIndex].row > 0) {
         // Checking North Vertical
         if (grid[travelerList[travIndex].segmentList[headIndex].row - 1][travelerList[travIndex].segmentList[headIndex].col] == SquareType::VERTICAL_PARTITION) {
             findPartitionsIndex(newDir, partitionIndex, travIndex); /* Find partitions index */
@@ -477,6 +477,21 @@ void checkIfSpaceIsPartition(Direction &newDir, int travIndex, bool &partitionIs
                 partitionIsNotBlocked = false;
             }
         }
+    } else if (newDir == Direction::EAST && travelerList[travIndex].segmentList[headIndex].col < numCols - 1) {
+        // Checking South Vertical
+        if (grid[travelerList[travIndex].segmentList[headIndex].row][travelerList[travIndex].segmentList[headIndex].col + 1] == SquareType::HORIZONTAL_PARTITION) {
+            findPartitionsIndex(newDir, partitionIndex, travIndex); /* Find partitions index */
+            size_t lengthOfPartition = partitionList[partitionIndex].blockList.size();
+            
+            if ((partitionList[partitionIndex].blockList[lengthOfPartition - 1].col + 1 < numCols) && ((grid[partitionList[partitionIndex].blockList[lengthOfPartition - 1].row][partitionList[partitionIndex].blockList[lengthOfPartition - 1].col + 1]) == SquareType::FREE_SQUARE)) {
+                
+//                cout << "grid row: " << (partitionList[partitionIndex].blockList[headIndex].row - 1) << ", grid col: " << partitionList[partitionIndex].blockList[headIndex].col << '\n';
+                partitionIsNotBlocked = true;
+                movePartition(newDir, partitionIndex); /* Move partition */
+            } else {
+                partitionIsNotBlocked = false;
+            }
+        }
     }
 }
 
@@ -487,6 +502,8 @@ void findPartitionsIndex(Direction &newDir, int &index, int &travIndex) {
             if ((newDir == Direction::NORTH) && (gridPos.row == travelerList[travIndex].segmentList[headIndex].row - 1) && (gridPos.col == travelerList[travIndex].segmentList[headIndex].col)) {
                 index = partition.index;
             } else if ((newDir == Direction::SOUTH) && (gridPos.row == travelerList[travIndex].segmentList[headIndex].row + 1) && (gridPos.col == travelerList[travIndex].segmentList[headIndex].col)) {
+                index = partition.index;
+            } else if ((newDir == Direction::EAST) && (gridPos.row == travelerList[travIndex].segmentList[headIndex].row) && (gridPos.col == travelerList[travIndex].segmentList[headIndex].col + 1)) {
                 index = partition.index;
             }
         }
@@ -516,9 +533,19 @@ void movePartition(Direction &newDir, int &partitionIndex) {
             partitionList[partitionIndex].blockList[blockListIndex].row += 1;
             grid[partitionList[partitionIndex].blockList[blockListIndex].row][partitionList[partitionIndex].blockList[blockListIndex].col] = SquareType::VERTICAL_PARTITION;
             
-            // Update the last element in the block list to a free square
+            // Update the head element in the block list to a free square
             if (blockListIndex == headIndex) {
                 grid[partitionList[partitionIndex].blockList[blockListIndex].row - 1][partitionList[partitionIndex].blockList[headIndex].col] = SquareType::FREE_SQUARE;
+            }
+        }
+    } else if (newDir == Direction::EAST) {
+        for (int blockListIndex = static_cast<int>(partitionList[partitionIndex].blockList.size() - 1); blockListIndex >= 0; blockListIndex--) {
+            partitionList[partitionIndex].blockList[blockListIndex].col += 1;
+            grid[partitionList[partitionIndex].blockList[blockListIndex].row][partitionList[partitionIndex].blockList[blockListIndex].col] = SquareType::HORIZONTAL_PARTITION;
+            
+            // Update the head element in the block list to a free square
+            if (blockListIndex == headIndex) {
+                grid[partitionList[partitionIndex].blockList[blockListIndex].row][partitionList[partitionIndex].blockList[headIndex].col - 1] = SquareType::FREE_SQUARE;
             }
         }
     }
@@ -606,11 +633,14 @@ bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex)
         || (row > 0 && grid[row - 1][col] == SquareType::VERTICAL_PARTITION);
     } else if (newDir == Direction::SOUTH && currentDir != Direction::NORTH) {
         return (row + 1 < static_cast<int>(numRows))
-                && (grid[row + 1][col] == SquareType::FREE_SQUARE
+        && (grid[row + 1][col] == SquareType::FREE_SQUARE
         || grid[row + 1][col] == SquareType::EXIT
         || grid[row + 1][col] == SquareType::VERTICAL_PARTITION);
     } else if (newDir == Direction::EAST && currentDir != Direction::WEST) {
-        return (col + 1 < static_cast<int>(numCols) && grid[row][col + 1] == SquareType::FREE_SQUARE) || (col + 1 < static_cast<int>(numCols) && grid[row][col + 1] == SquareType::EXIT);
+        return (col + 1 < static_cast<int>(numRows))
+        && (grid[row][col + 1] == SquareType::FREE_SQUARE
+        || grid[row][col + 1] == SquareType::EXIT
+        || grid[row][col + 1] == SquareType::HORIZONTAL_PARTITION);
     } else if (newDir == Direction::WEST && currentDir != Direction::EAST) {
         return (col > 0 && grid[row][col - 1] == SquareType::FREE_SQUARE) || (col > 0 && grid[row][col - 1] == SquareType::EXIT);
     } else {
