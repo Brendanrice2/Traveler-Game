@@ -42,6 +42,8 @@ void getNewDirection(vector<Direction> &possibleDirections, int travIndex);
 bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex);
 bool checkExit(Direction newDir, int travelerIndex, int segmentIndex);
 void finishAndTerminateSegment(int &travIndex);
+void checkIfSpaceIsPartition(Direction &newDir, int travIndex);
+void movePartition(Direction &newDir);
 
 #if 0
 //-----------------------------------------------------------------------------
@@ -71,7 +73,7 @@ vector<mutex*> travelerLocks;
 
 //    travelers' sleep time between moves (in microseconds)
 const int MIN_SLEEP_TIME = 1000;
-int travelerSleepTime = 100000;
+int travelerSleepTime = 500000;
 
 //    An array of C-string where you can store things you want displayed
 //    in the state pane to display (for debugging purposes?)
@@ -236,12 +238,6 @@ int main(int argc, char* argv[])
     }
     numLiveThreads = 0;
     numTravelersDone = 0;
-    
-    // Initialize the traveler locks
-    travelerLocks.resize(numTravelers);
-    for (int i = 0; i < numTravelers; i++) {
-        travelerLocks[i] = new mutex();
-    }
 
     //    Even though we extracted the relevant information from the argument
     //    list, I still need to pass argc and argv to the front-end init
@@ -366,6 +362,12 @@ void initializeApplication(void)
     for (unsigned int k=0; k<numTravelers; k++)
         delete []travelerColor[k];
     delete []travelerColor;
+    
+    // Initialize the traveler locks
+    travelerLocks.resize(numTravelers);
+    for (int i = 0; i < numTravelers; i++) {
+        travelerLocks[i] = new mutex();
+    }
 
     for(unsigned int i = 0; i < numTravelers; i++) {
         threads.push_back(thread(moveTraveler, travelerList[i]));
@@ -382,6 +384,9 @@ void moveTraveler(Traveler traveler) {
     unsigned int moveCount = 0;
     bool addNewSegment = false;
     int travIndex = traveler.index;
+    // Seed the RNG
+    std::random_device rd;
+    std::mt19937 gen(rd());
     
     while(stillGoing && !exitFound) {
         
@@ -389,12 +394,13 @@ void moveTraveler(Traveler traveler) {
         gridLock.lock();
         getNewDirection(possibleDirections, travIndex);
         if (!possibleDirections.empty()) {
-            std::random_device rd;
-            std::mt19937 gen(rd());
             std::uniform_int_distribution<int> distribution(0, (int) possibleDirections.size() - 1);
             
             newDir = possibleDirections[distribution(gen)];
             possibleDirections.clear();
+            
+            /* Check if partition is in the way */
+//            checkIfSpaceIsPartition(newDir, travIndex);
             
             if (moveCount == movesToGrowNewSegment || travelerList[travIndex].segmentList.size() == 1) {
                 addNewSegment = true;
@@ -423,15 +429,47 @@ void moveTraveler(Traveler traveler) {
     */
 }
 
+void checkIfSpaceIsPartition(Direction &newDir, int travIndex) {
+    // Checking North
+    if (newDir == Direction::NORTH && partitionList[0].blockList[headIndex].row > 0 && grid[travelerList[travIndex].segmentList[headIndex].row - 1][travelerList[travIndex].segmentList[headIndex].col] == SquareType::VERTICAL_PARTITION) {
+        // Move partition
+        movePartition(newDir);
+    }
+}
+
+void movePartition(Direction &newDir) {
+    /**
+     * Breakdown for moving vertical partition to the North:
+     * Get new direction North
+     * Check if new direction is a partition && vertical partition
+     * If true, move partition up one
+     */
+    
+    int partitionIndex = 0;
+    
+    // !TODO: change partition list index from 0 to the partitions index (not sure how to find it yet)
+    if (newDir == Direction::NORTH && (grid[partitionList[partitionIndex].blockList[headIndex].row - 1][partitionList[partitionIndex].blockList[headIndex].col]) == SquareType::FREE_SQUARE) {
+        for (size_t blockListIndex = 0; blockListIndex < partitionList[partitionIndex].blockList.size(); blockListIndex++) {
+            partitionList[partitionIndex].blockList[blockListIndex].row -= 1;
+            grid[partitionList[partitionIndex].blockList[blockListIndex].row][partitionList[partitionIndex].blockList[blockListIndex].col] = SquareType::VERTICAL_PARTITION;
+            
+            // Update the last element in the block list to a free square
+            if (blockListIndex == partitionList[partitionIndex].blockList.size() - 1) {
+                grid[partitionList[partitionIndex].blockList[blockListIndex].row + 1][partitionList[partitionIndex].blockList[headIndex].col] = SquareType::FREE_SQUARE;
+            }
+        }
+    }
+}
+
 void finishAndTerminateSegment(int &travIndex) {
+    travelerLocks[travIndex]->lock();
     //Freeing all traveler spaces
     for(unsigned int k = 0; k < travelerList[travIndex].segmentList.size(); k++) {
-        travelerLocks[travIndex]->lock();
         int tempRow = travelerList[travIndex].segmentList[k].row;
         int tempCol = travelerList[travIndex].segmentList[k].col;
         grid[tempRow][tempCol] = SquareType::FREE_SQUARE;
-        travelerLocks[travIndex]->unlock();
     }
+    travelerLocks[travIndex]->unlock();
     
     travelerList[travIndex].stillAlive = false; /* Removes the traveler from the screen */
     numTravelersDone++;
@@ -472,24 +510,24 @@ void updateCurrentSegment(TravelerSegment &previousSegment, Direction &newDir, b
     }
     travelerLocks[travIndex]->unlock();
     
+    travelerLocks[travIndex]->lock();
     // Updating the rest of the segment
     travelerList[travIndex].segmentList[headIndex].dir = newDir;
     for(unsigned int i = 1; i < travelerList[travIndex].segmentList.size(); i++) {
-        travelerLocks[travIndex]->lock();
         // Update the current segment to the previous and store the current segment in the previous
         std::swap(previousSegment, travelerList[travIndex].segmentList[i]);
-        travelerLocks[travIndex]->unlock();
         
         if(i == travelerList[travIndex].segmentList.size() - 1 && !addNewSegment) {
             grid[previousSegment.row][previousSegment.col] = SquareType::FREE_SQUARE;
         }
     }
+    travelerLocks[travIndex]->unlock();
     
     if (addNewSegment) {
         travelerLocks[travIndex]->lock();
         travelerList[travIndex].segmentList.push_back(previousSegment);
-        addNewSegment = false;
         travelerLocks[travIndex]->unlock();
+        addNewSegment = false;
     }
 }
 
@@ -499,7 +537,10 @@ bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex)
     int col = travelerList[travelerIndex].segmentList[segmentIndex].col;
 
     if (newDir == Direction::NORTH && currentDir != Direction::SOUTH) {
-        return (row > 0 && grid[row - 1][col] == SquareType::FREE_SQUARE) || (row > 0 && grid[row - 1][col] == SquareType::EXIT);
+        return
+           (row > 0 && grid[row - 1][col] == SquareType::FREE_SQUARE)
+        || (row > 0 && grid[row - 1][col] == SquareType::EXIT);/*
+        || (row > 0 && grid[row - 1][col] == SquareType::VERTICAL_PARTITION*/
     } else if (newDir == Direction::SOUTH && currentDir != Direction::NORTH) {
         return (row + 1 < static_cast<int>(numRows) && grid[row + 1][col] == SquareType::FREE_SQUARE) || (row + 1 < static_cast<int>(numRows) && grid[row + 1][col] == SquareType::EXIT);
     } else if (newDir == Direction::EAST && currentDir != Direction::WEST) {
