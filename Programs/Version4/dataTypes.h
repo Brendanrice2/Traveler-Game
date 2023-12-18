@@ -110,11 +110,8 @@ struct SlidingPartition
      *        left-to-right for a horizontal list
      */
     std::vector<GridPosition> blockList;
-
+    
     int index;
-
-    /**    Where the partition is located within the partitionList vector
-     */
 
 };
 

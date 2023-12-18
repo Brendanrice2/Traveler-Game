@@ -17,7 +17,6 @@
 #include <ctime>
 #include <climits>
 #include <mutex>
-#include <string>
 //
 #include "gl_frontEnd.h"
 
@@ -39,13 +38,13 @@ void generateWalls(void);
 void generatePartitions(void);
 void moveTraveler(Traveler traveler);
 void updateCurrentSegment(TravelerSegment &previousSegment, Direction &newDir, bool &addNewSegment, int travIndex);
-void updateSegHead(int travIndex, Direction newDir);
-string getPartitionStyle(Direction newdir, int travIndex);
-void vertNS(Direction dir, string partitionStyle, int travIndex);
 void getNewDirection(vector<Direction> &possibleDirections, int travIndex);
 bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex);
 bool checkExit(Direction newDir, int travelerIndex, int segmentIndex);
 void finishAndTerminateSegment(int &travIndex);
+void checkIfSpaceIsPartition(Direction &newDir, int travIndex);
+void findPartitionsIndex(Direction &newDir, int &index, int &travIndex);
+void movePartition(Direction &newDir, int &partitionIndex);
 
 #if 0
 //-----------------------------------------------------------------------------
@@ -58,8 +57,8 @@ void finishAndTerminateSegment(int &travIndex);
 //-------------------------------------
 //    The state grid and its dimensions (arguments to the program)
 SquareType** grid;
-unsigned int numRows = 0;   //    height of the grid
-unsigned int numCols = 0;   //    width
+unsigned int numRows = 0;    //    height of the grid
+unsigned int numCols = 0;    //    width
 unsigned int numTravelers = 0;    //    initial number
 unsigned int movesToGrowNewSegment = 0;
 unsigned int numTravelersDone = 0;
@@ -72,11 +71,10 @@ vector<thread> threads; /**< The vector to contain the thread ids */
 bool stillGoing = true;
 mutex gridLock;
 vector<mutex*> travelerLocks;
-int partCount = 0;   //Counter for the number of partitions
 
 //    travelers' sleep time between moves (in microseconds)
 const int MIN_SLEEP_TIME = 1000;
-int travelerSleepTime = 100000;
+int travelerSleepTime = 500000;
 
 //    An array of C-string where you can store things you want displayed
 //    in the state pane to display (for debugging purposes?)
@@ -157,7 +155,11 @@ void handleKeyboardEvent(unsigned char c, int x, int y)
             for (auto& thread: threads) {
                 thread.join();
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+            
+            // Free the memory for the mutexes
+            for (int i = 0; i < travelerLocks.size(); i++) {
+                delete travelerLocks[i];
+            }
             exit(0);
             break;
 
@@ -237,10 +239,6 @@ int main(int argc, char* argv[])
     }
     numLiveThreads = 0;
     numTravelersDone = 0;
-    travelerLocks.resize(numTravelers);
-    for(unsigned int i = 0; i < numTravelers; i++){
-        travelerLocks[i] = new mutex();
-    }
 
     //    Even though we extracted the relevant information from the argument
     //    list, I still need to pass argc and argv to the front-end init
@@ -365,16 +363,18 @@ void initializeApplication(void)
     for (unsigned int k=0; k<numTravelers; k++)
         delete []travelerColor[k];
     delete []travelerColor;
-
-    /*
-    cout << partitionList.size() << endl;
-    for(unsigned int i = 0; i < partitionList.size(); i++){
-        cout << "huh\n";
-        cout << "Partition: " << i << " List - ";
-        for(unsigned int j = 0; j < partitionList[i].blockList.size(); j++){
-            cout << partitionList[i].blockList[j].row << ", " << partitionList[i].blockList[j].col << " | ";
-        }
-    }*/
+    
+    // Initialize the traveler locks
+    travelerLocks.resize(numTravelers);
+    for (int i = 0; i < numTravelers; i++) {
+        travelerLocks[i] = new mutex();
+    }
+    
+    int indexCounter = 0;
+    for (SlidingPartition part : partitionList) {
+        part.index = indexCounter;
+        indexCounter++;
+    }
 
     for(unsigned int i = 0; i < numTravelers; i++) {
         threads.push_back(thread(moveTraveler, travelerList[i]));
@@ -391,6 +391,9 @@ void moveTraveler(Traveler traveler) {
     unsigned int moveCount = 0;
     bool addNewSegment = false;
     int travIndex = traveler.index;
+    // Seed the RNG
+    std::random_device rd;
+    std::mt19937 gen(rd());
     
     while(stillGoing && !exitFound) {
         
@@ -398,12 +401,13 @@ void moveTraveler(Traveler traveler) {
         gridLock.lock();
         getNewDirection(possibleDirections, travIndex);
         if (!possibleDirections.empty()) {
-            std::random_device rd;
-            std::mt19937 gen(rd());
             std::uniform_int_distribution<int> distribution(0, (int) possibleDirections.size() - 1);
             
             newDir = possibleDirections[distribution(gen)];
             possibleDirections.clear();
+            
+            /* Check if partition is in the way */
+            checkIfSpaceIsPartition(newDir, travIndex);
             
             if (moveCount == movesToGrowNewSegment || travelerList[travIndex].segmentList.size() == 1) {
                 addNewSegment = true;
@@ -420,7 +424,7 @@ void moveTraveler(Traveler traveler) {
         }
         
         gridLock.unlock();
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        std::this_thread::sleep_for(std::chrono::microseconds(travelerSleepTime));
     }
 
     /**
@@ -432,15 +436,62 @@ void moveTraveler(Traveler traveler) {
     */
 }
 
+/**
+    This function checks if the new direction is where a partition is already located.
+ */
+void checkIfSpaceIsPartition(Direction &newDir, int travIndex) {
+    int partitionIndex;
+    
+    // Checking North Vertical
+    if (newDir == Direction::NORTH && partitionList[0].blockList[headIndex].row > 0) {
+        if (grid[travelerList[travIndex].segmentList[headIndex].row - 1][travelerList[travIndex].segmentList[headIndex].col] == SquareType::VERTICAL_PARTITION) {
+            findPartitionsIndex(newDir, partitionIndex, travIndex); /* Find partitions index */
+            movePartition(newDir, partitionIndex); /* Move partition */
+        }
+    }
+}
+
+void findPartitionsIndex(Direction &newDir, int &index, int &travIndex) {
+    
+    for (SlidingPartition partition : partitionList) {
+        for (GridPosition gridPos : partition.blockList) {
+            if ((newDir == Direction::NORTH) && (gridPos.row == travelerList[travIndex].segmentList[headIndex].row - 1) && (gridPos.col == travelerList[travIndex].segmentList[headIndex].col)) {
+                index = partition.index;
+            }
+        }
+    }
+}
+
+void movePartition(Direction &newDir, int &partitionIndex) {
+    /**
+     * Breakdown for moving vertical partition to the North:
+     * Get new direction North
+     * Check if new direction is a partition && vertical partition
+     * If true, move partition up one
+     */
+    
+    if (newDir == Direction::NORTH && (grid[partitionList[partitionIndex].blockList[headIndex].row - 1][partitionList[partitionIndex].blockList[headIndex].col]) == SquareType::FREE_SQUARE) {
+        for (size_t blockListIndex = 0; blockListIndex < partitionList[partitionIndex].blockList.size(); blockListIndex++) {
+            partitionList[partitionIndex].blockList[blockListIndex].row -= 1;
+            grid[partitionList[partitionIndex].blockList[blockListIndex].row][partitionList[partitionIndex].blockList[blockListIndex].col] = SquareType::VERTICAL_PARTITION;
+            
+            // Update the last element in the block list to a free square
+            if (blockListIndex == partitionList[partitionIndex].blockList.size() - 1) {
+                grid[partitionList[partitionIndex].blockList[blockListIndex].row + 1][partitionList[partitionIndex].blockList[headIndex].col] = SquareType::FREE_SQUARE;
+            }
+        }
+    }
+}
+
 void finishAndTerminateSegment(int &travIndex) {
+    travelerLocks[travIndex]->lock();
     //Freeing all traveler spaces
     for(unsigned int k = 0; k < travelerList[travIndex].segmentList.size(); k++) {
-        travelerLocks[travIndex]->lock();
         int tempRow = travelerList[travIndex].segmentList[k].row;
         int tempCol = travelerList[travIndex].segmentList[k].col;
         grid[tempRow][tempCol] = SquareType::FREE_SQUARE;
-        travelerLocks[travIndex]->unlock();
     }
+    travelerLocks[travIndex]->unlock();
     
     travelerList[travIndex].stillAlive = false; /* Removes the traveler from the screen */
     numTravelersDone++;
@@ -463,124 +514,9 @@ void getNewDirection(vector<Direction> &possibleDirections, int travIndex) {
 void updateCurrentSegment(TravelerSegment &previousSegment, Direction &newDir, bool &addNewSegment, int travIndex) {
     
     previousSegment = travelerList[travIndex].segmentList[headIndex];
-    string partitionStyle = getPartitionStyle(newDir, travIndex);
+    
+    travelerLocks[travIndex]->lock();
     // Updating the head of the segment
-    if (newDir == Direction::NORTH) {
-        if (partitionStyle == "VERTICAL") {
-            //move
-        } else if (partitionStyle == "HORIZONTAL") {
-            //move
-        } 
-        updateSegHead(travIndex, newDir);
-    } else if (newDir == Direction::SOUTH) {
-        if (partitionStyle == "VERTICAL") {
-            //move
-        } else if (partitionStyle == "HORIZONTAL") {
-            //move
-        }
-        updateSegHead(travIndex, newDir);
-    } else if (newDir == Direction::EAST) {
-        if (partitionStyle == "VERTICAL") {
-            //move
-        } else if (partitionStyle == "HORIZONTAL") {
-            //move
-        }
-        updateSegHead(travIndex, newDir);
-    } else if (newDir == Direction::WEST) {
-        if (partitionStyle == "VERTICAL") {
-            //move
-        } else if (partitionStyle == "HORIZONTAL") {
-            //move
-        }
-        updateSegHead(travIndex, newDir);
-    }
-    
-    // Updating the rest of the segment
-    travelerList[travIndex].segmentList[headIndex].dir = newDir;
-    for(unsigned int i = 1; i < travelerList[travIndex].segmentList.size(); i++) {
-        // Update the current segment to the previous and store the current segment in the previous
-        std::swap(previousSegment, travelerList[travIndex].segmentList[i]);
-        
-        if(i == travelerList[travIndex].segmentList.size() - 1 && !addNewSegment) {
-            grid[previousSegment.row][previousSegment.col] = SquareType::FREE_SQUARE;
-        }
-    }
-    
-    if (addNewSegment) {
-        travelerList[travIndex].segmentList.push_back(previousSegment);
-        addNewSegment = false;
-    }
-}
-
-// Returns the partition style of the next block
-string getPartitionStyle(Direction newDir, int travIndex){
-    string result;
-    if(newDir == Direction::NORTH){
-        if (grid[travelerList[travIndex].segmentList[headIndex].row - 1][travelerList[travIndex].segmentList[headIndex].col] == SquareType::VERTICAL_PARTITION) {
-            result = "VERTICAL";
-        } else if (grid[travelerList[travIndex].segmentList[headIndex].row - 1][travelerList[travIndex].segmentList[headIndex].col] == SquareType::HORIZONTAL_PARTITION) {
-            result = "HORIZONTAL";
-        }
-        else{
-            result = "NONE";
-        }
-    }
-    else if(newDir == Direction::SOUTH){
-        if (grid[travelerList[travIndex].segmentList[headIndex].row + 1][travelerList[travIndex].segmentList[headIndex].col] == SquareType::VERTICAL_PARTITION) {
-            result = "VERTICAL";
-        } else if (grid[travelerList[travIndex].segmentList[headIndex].row + 1][travelerList[travIndex].segmentList[headIndex].col] == SquareType::HORIZONTAL_PARTITION) {
-            result = "HORIZONTAL";
-        }
-        else{
-            result = "NONE";
-        }
-    }
-    else if(newDir == Direction::EAST){
-        if (grid[travelerList[travIndex].segmentList[headIndex].row][travelerList[travIndex].segmentList[headIndex].col - 1] == SquareType::VERTICAL_PARTITION) {
-            result = "VERTICAL";
-        } else if (grid[travelerList[travIndex].segmentList[headIndex].row][travelerList[travIndex].segmentList[headIndex].col - 1] == SquareType::HORIZONTAL_PARTITION) {
-            result = "HORIZONTAL";
-        }
-        else{
-            result = "NONE";
-        }
-    }
-    else if (newDir == Direction::WEST){
-        if (grid[travelerList[travIndex].segmentList[headIndex].row][travelerList[travIndex].segmentList[headIndex].col + 1] == SquareType::VERTICAL_PARTITION) {
-            result = "VERTICAL";
-        } else if (grid[travelerList[travIndex].segmentList[headIndex].row][travelerList[travIndex].segmentList[headIndex].col + 1] == SquareType::HORIZONTAL_PARTITION) {
-            result = "HORIZONTAL";
-        }
-        else{
-            result = "NONE";
-        }
-    }
-
-    return result;
-}
-
-void vertNS(Direction dir, string partitionStyle, int travIndex) { 
-    if (dir == Direction::NORTH){
-        if(partitionStyle == "VERTICAL"){
-            
-        }
-        else if(partitionStyle == "HORIZONTAL"){
-            //move
-        }
-    }
-
-    else if(dir == Direction::SOUTH){
-        if(partitionStyle == "VERTICAL"){
-            //move
-        }
-        else if(partitionStyle == "HORIZONTAL"){
-            //move
-        }
-    }
-}
-
-//Updates the segment head
-void updateSegHead(int travIndex, Direction newDir){
     if (newDir == Direction::NORTH) {
         travelerList[travIndex].segmentList[headIndex].row -= 1;
         grid[travelerList[travIndex].segmentList[headIndex].row][travelerList[travIndex].segmentList[0].col] = SquareType::TRAVELER;
@@ -594,6 +530,27 @@ void updateSegHead(int travIndex, Direction newDir){
         travelerList[travIndex].segmentList[headIndex].col -= 1;
         grid[travelerList[travIndex].segmentList[headIndex].row][travelerList[travIndex].segmentList[0].col] = SquareType::TRAVELER;
     }
+    travelerLocks[travIndex]->unlock();
+    
+    travelerLocks[travIndex]->lock();
+    // Updating the rest of the segment
+    travelerList[travIndex].segmentList[headIndex].dir = newDir;
+    for(unsigned int i = 1; i < travelerList[travIndex].segmentList.size(); i++) {
+        // Update the current segment to the previous and store the current segment in the previous
+        std::swap(previousSegment, travelerList[travIndex].segmentList[i]);
+        
+        if(i == travelerList[travIndex].segmentList.size() - 1 && !addNewSegment) {
+            grid[previousSegment.row][previousSegment.col] = SquareType::FREE_SQUARE;
+        }
+    }
+    travelerLocks[travIndex]->unlock();
+    
+    if (addNewSegment) {
+        travelerLocks[travIndex]->lock();
+        travelerList[travIndex].segmentList.push_back(previousSegment);
+        travelerLocks[travIndex]->unlock();
+        addNewSegment = false;
+    }
 }
 
 bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex){
@@ -602,13 +559,16 @@ bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex)
     int col = travelerList[travelerIndex].segmentList[segmentIndex].col;
 
     if (newDir == Direction::NORTH && currentDir != Direction::SOUTH) {
-        return (row > 0 && grid[row - 1][col] == SquareType::FREE_SQUARE) || (row > 0 && grid[row - 1][col] == SquareType::EXIT) || (grid[row - 1][col] == SquareType::VERTICAL_PARTITION) || (grid[row - 1][col] == SquareType::HORIZONTAL_PARTITION);
+        return
+           (row > 0 && grid[row - 1][col] == SquareType::FREE_SQUARE)
+        || (row > 0 && grid[row - 1][col] == SquareType::EXIT)
+        || (row > 0 && grid[row - 1][col] == SquareType::VERTICAL_PARTITION);
     } else if (newDir == Direction::SOUTH && currentDir != Direction::NORTH) {
-        return (row + 1 < static_cast<int>(numRows) && grid[row + 1][col] == SquareType::FREE_SQUARE) || (row + 1 < static_cast<int>(numRows) && grid[row + 1][col] == SquareType::EXIT) || (grid[row + 1][col] == SquareType::VERTICAL_PARTITION) || (grid[row + 1][col] == SquareType::HORIZONTAL_PARTITION);
+        return (row + 1 < static_cast<int>(numRows) && grid[row + 1][col] == SquareType::FREE_SQUARE) || (row + 1 < static_cast<int>(numRows) && grid[row + 1][col] == SquareType::EXIT);
     } else if (newDir == Direction::EAST && currentDir != Direction::WEST) {
-        return (col + 1 < static_cast<int>(numCols) && grid[row][col + 1] == SquareType::FREE_SQUARE) || (col + 1 < static_cast<int>(numCols) && grid[row][col + 1] == SquareType::EXIT) || (grid[row][col + 1] == SquareType::VERTICAL_PARTITION) || (grid[row][col + 1] == SquareType::HORIZONTAL_PARTITION);
+        return (col + 1 < static_cast<int>(numCols) && grid[row][col + 1] == SquareType::FREE_SQUARE) || (col + 1 < static_cast<int>(numCols) && grid[row][col + 1] == SquareType::EXIT);
     } else if (newDir == Direction::WEST && currentDir != Direction::EAST) {
-        return (col > 0 && grid[row][col - 1] == SquareType::FREE_SQUARE) || (col > 0 && grid[row][col - 1] == SquareType::EXIT) || (grid[row][col - 1] == SquareType::VERTICAL_PARTITION) || (grid[row][col - 1] == SquareType::HORIZONTAL_PARTITION);
+        return (col > 0 && grid[row][col - 1] == SquareType::FREE_SQUARE) || (col > 0 && grid[row][col - 1] == SquareType::EXIT);
     } else {
         return false;
     }
@@ -881,6 +841,7 @@ void generatePartitions(void)
                         GridPosition pos = {row, col};
                         part.blockList.push_back(pos);
                     }
+                    partitionList.push_back(part);
                 }
             }
         }
@@ -913,9 +874,6 @@ void generatePartitions(void)
                 {
                     SlidingPartition part;
                     part.isVertical = false;
-                    part.index = partCount;
-                    partCount++;
-                    
                     for (unsigned int col=startCol, i=0; i<length && goodPart; i++, col++)
                     {
                         grid[row][col] = SquareType::HORIZONTAL_PARTITION;

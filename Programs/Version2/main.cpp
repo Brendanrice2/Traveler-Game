@@ -149,8 +149,8 @@ void handleKeyboardEvent(unsigned char c, int x, int y)
             for (auto& thread: threads) {
                 thread.join();
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(200));
-			exit(0);
+
+            exit(0);
 			break;
 
 		//	slowdown
@@ -397,7 +397,7 @@ void moveTraveler(Traveler traveler) {
                 updateCurrentSegment(previousSegment, newDir, addNewSegment, travIndex);
             }
             
-            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+            std::this_thread::sleep_for(std::chrono::microseconds(travelerSleepTime));
             moveCount++;
         }
 	}
