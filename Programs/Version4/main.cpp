@@ -628,16 +628,18 @@ bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex)
 
     if (newDir == Direction::NORTH && currentDir != Direction::SOUTH) {
         return
-           (row > 0 && grid[row - 1][col] == SquareType::FREE_SQUARE)
+        (row > 0 && grid[row - 1][col] == SquareType::FREE_SQUARE)
         || (row > 0 && grid[row - 1][col] == SquareType::EXIT)
         || (row > 0 && grid[row - 1][col] == SquareType::VERTICAL_PARTITION);
     } else if (newDir == Direction::SOUTH && currentDir != Direction::NORTH) {
-        return (row + 1 < static_cast<int>(numRows))
+        return 
+        (row + 1 < static_cast<int>(numRows))
         && (grid[row + 1][col] == SquareType::FREE_SQUARE
         || grid[row + 1][col] == SquareType::EXIT
         || grid[row + 1][col] == SquareType::VERTICAL_PARTITION);
     } else if (newDir == Direction::EAST && currentDir != Direction::WEST) {
-        return (col + 1 < static_cast<int>(numRows))
+        return
+        (col + 1 < static_cast<int>(numCols))
         && (grid[row][col + 1] == SquareType::FREE_SQUARE
         || grid[row][col + 1] == SquareType::EXIT
         || grid[row][col + 1] == SquareType::HORIZONTAL_PARTITION);
