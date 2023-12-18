@@ -452,6 +452,13 @@ void checkIfSpaceIsPartition(Direction &newDir, int travIndex) {
             }
         }
     }
+
+    else if(newDir == Direction::EAST){
+        if (grid[travelerList[travIndex].segmentList[headIndex].row][travelerList[travIndex].segmentList[headIndex].col + 1] == SqaureType:: VERTICAL_PARTITION) {
+            findPartitionsIndex(newDir, partitionIndex, travIndex); /* Find partitions index */
+            if (partitionList[partitionIndex].blockList[headIndex].row > 0)
+        }
+    }
 }
 
 void findPartitionsIndex(Direction &newDir, int &index, int &travIndex) {
