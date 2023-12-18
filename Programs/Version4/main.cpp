@@ -157,7 +157,7 @@ void handleKeyboardEvent(unsigned char c, int x, int y)
             }
             
             // Free the memory for the mutexes
-            for (int i = 0; i < travelerLocks.size(); i++) {
+            for (unsigned int i = 0; i < travelerLocks.size(); i++) {
                 delete travelerLocks[i];
             }
             exit(0);
@@ -366,7 +366,7 @@ void initializeApplication(void)
     
     // Initialize the traveler locks
     travelerLocks.resize(numTravelers);
-    for (int i = 0; i < numTravelers; i++) {
+    for (unsigned int i = 0; i < numTravelers; i++) {
         travelerLocks[i] = new mutex();
     }
     
@@ -454,7 +454,9 @@ void checkIfSpaceIsPartition(Direction &newDir, int travIndex) {
 void findPartitionsIndex(Direction &newDir, int &index, int &travIndex) {
     
     for (SlidingPartition partition : partitionList) {
+        cout << "Partition index: " << partition.index << '\n';
         for (GridPosition gridPos : partition.blockList) {
+            cout << "Grid position: " << gridPos.row << ", " << gridPos.col << '\n';
             if ((newDir == Direction::NORTH) && (gridPos.row == travelerList[travIndex].segmentList[headIndex].row - 1) && (gridPos.col == travelerList[travIndex].segmentList[headIndex].col)) {
                 index = partition.index;
             }
