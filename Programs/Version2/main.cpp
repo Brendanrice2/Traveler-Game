@@ -413,10 +413,12 @@ void moveTraveler(Traveler traveler) {
 
 void finishAndTerminateSegment(int &travIndex) {
     //Freeing all traveler spaces
-    for(unsigned int k = 0; k < travelerList[travIndex].segmentList.size(); k++) {
+    for(int k = (static_cast<int>(travelerList[travIndex].segmentList.size()) - 1); k >= 0 ; k--) {
         int tempRow = travelerList[travIndex].segmentList[k].row;
         int tempCol = travelerList[travIndex].segmentList[k].col;
         grid[tempRow][tempCol] = SquareType::FREE_SQUARE;
+        travelerList[travIndex].segmentList.pop_back();
+        std::this_thread::sleep_for(std::chrono::microseconds(travelerSleepTime));
     }
     
     travelerList[travIndex].stillAlive = false; /* Removes the traveler from the screen */

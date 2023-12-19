@@ -146,7 +146,6 @@ void handleKeyboardEvent(unsigned char c, int x, int y)
             for (auto& thread: threads) {
                 thread.join();
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(200));
 			exit(0);
 			break;
 
@@ -403,7 +402,7 @@ void moveTraveler() {
             cout << "All travelers have found this exit!" << '\n';
             return;
         }
-		std::this_thread::sleep_for(std::chrono::milliseconds(200));
+		std::this_thread::sleep_for(std::chrono::microseconds(travelerSleepTime));
         moveCount++;
 	}
 
