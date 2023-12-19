@@ -461,6 +461,8 @@ void checkIfSpaceIsPartition(Direction &newDir, int travIndex, bool &partitionIs
                 movePartition(newDir, partitionIndex); /* Move partition */
             } else {
                 partitionIsNotBlocked = false;
+                southStreak = false;
+                checkNorth = false;
             }
         }
     }
@@ -468,12 +470,10 @@ void checkIfSpaceIsPartition(Direction &newDir, int travIndex, bool &partitionIs
     else if(newDir == Direction::EAST){
         //Conditional to check if the space is a vertical partition
         if (grid[travelerList[travIndex].segmentList[headIndex].row][travelerList[travIndex].segmentList[headIndex].col + 1] == SquareType::VERTICAL_PARTITION) {
-            //cout << "Partition to the right" << endl;
             findPartitionsIndex(newDir, partitionIndex, travIndex); /* Find partitions index */
             blockListSize = partitionList[partitionIndex].blockList.size();
             // Check if we can move the partition north
             if (partitionList[partitionIndex].blockList[headIndex].row > 0 && (grid[partitionList[partitionIndex].blockList[headIndex].row-1][partitionList[partitionIndex].blockList[headIndex].col]) == SquareType::FREE_SQUARE && checkNorth == false && southStreak == false) {
-                //cout << "(E) Moving North - " << travIndex << '\n';
                 movePartition(Direction::NORTH, partitionIndex); /* Move partition */
                 southStreak = false;
                 if(grid[travelerList[travIndex].segmentList[headIndex].row][travelerList[travIndex].segmentList[headIndex].col + 1] == SquareType::VERTICAL_PARTITION) partitionIsNotBlocked = false;
@@ -481,7 +481,6 @@ void checkIfSpaceIsPartition(Direction &newDir, int travIndex, bool &partitionIs
             
             //If not we move south and set checkNorth to true
             else if (partitionList[partitionIndex].blockList[blockListSize-1].row < (numRows - 1) && (grid[partitionList[partitionIndex].blockList[blockListSize-1].row+1][partitionList[partitionIndex].blockList[blockListSize-1].col]) == SquareType::FREE_SQUARE) {
-                //cout << "(E) Moving South - " << travIndex << '\n';
                 checkNorth = true;
                 southStreak = true;
                 movePartition(Direction::SOUTH, partitionIndex); /* Move partition */
@@ -490,7 +489,8 @@ void checkIfSpaceIsPartition(Direction &newDir, int travIndex, bool &partitionIs
             }
             else {
                 partitionIsNotBlocked = false;
-                //cout << "Partition is blocked" << endl;
+                southStreak = false;
+                checkNorth = false;
             }
     
         }
@@ -520,7 +520,8 @@ void checkIfSpaceIsPartition(Direction &newDir, int travIndex, bool &partitionIs
             }
             else {
                 partitionIsNotBlocked = false;
-                cout << "Partition is blocked" << endl;
+                southStreak = false;
+                checkNorth = false;
             }
     
         }
