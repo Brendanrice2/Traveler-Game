@@ -447,7 +447,6 @@ void moveTraveler(Traveler traveler) {
 void checkIfSpaceIsPartition(Direction &newDir, int travIndex, bool &partitionIsNotBlocked, bool &southStreak) {
     int partitionIndex;
     bool checkNorth = false;       //set to true if we should continue moving south
-    bool checkWest = false;
 
     int blockListSize;
     if (newDir == Direction::NORTH && travelerList[travIndex].segmentList[headIndex].row > 0) {
@@ -621,18 +620,7 @@ void moveVertPartition(Direction dir, int &partitionIndex) {
         }
 
     }
-
-    else if(dir == Direction::EAST) {
-        for (size_t blockListIndex = 0; blockListIndex < partitionList[partitionIndex].blockList.size(); blockListIndex++) {
-            partitionList[partitionIndex].blockList[blockListIndex].col += 1;
-            grid[partitionList[partitionIndex].blockList[blockListIndex].row][partitionList[partitionIndex].blockList[blockListIndex].col] = SquareType::VERTICAL_PARTITION;
-            
-            // Update the last element in the block list to a free square
-            if (blockListIndex == partitionList[partitionIndex].blockList.size() - 1) {
-                grid[partitionList[partitionIndex].blockList[blockListIndex].row][partitionList[partitionIndex].blockList[headIndex].col - 1] = SquareType::FREE_SQUARE;
-            }
-        }
-    }
+    
 }
 
 void moveHorizPartition(Direction dir, int &partitionIndex) {
@@ -642,13 +630,8 @@ void moveHorizPartition(Direction dir, int &partitionIndex) {
      * Check if new direction is a partition && horizontal partition
      * If true, move partition right one
      */
-    if (dir == Direction::NORTH){
-        cout << "not implemented" << endl;
-
-    } else if(dir == Direction::SOUTH){
-        cout << "not implemented" << endl;
-
-    } else if (dir == Direction::EAST) {
+    
+    if (dir == Direction::EAST) {
         for (int blockListIndex = static_cast<int>(partitionList[partitionIndex].blockList.size() - 1); blockListIndex >= 0; blockListIndex--) {
             partitionList[partitionIndex].blockList[blockListIndex].col += 1;
             grid[partitionList[partitionIndex].blockList[blockListIndex].row][partitionList[partitionIndex].blockList[blockListIndex].col] = SquareType::HORIZONTAL_PARTITION;
