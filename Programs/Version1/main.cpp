@@ -39,6 +39,7 @@ void updateCurrentSegment(int &previousRow, int &previousCol, Direction &previou
 void getNewDirection();
 bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex);
 bool checkExit(Direction newDir, int travelerIndex, int segmentIndex);
+void finishAndTerminateSegment();
 
 #if 0
 //-----------------------------------------------------------------------------
@@ -109,7 +110,9 @@ void drawTravelers(void)
 	for (unsigned int k=0; k<travelerList.size(); k++)
 	{
 		//	here I would test if the traveler thread is still live
-		drawTraveler(travelerList[k]);
+        if (travelerList[k].stillAlive) {
+            drawTraveler(travelerList[k]);
+        }
 	}
 }
 
@@ -146,7 +149,6 @@ void handleKeyboardEvent(unsigned char c, int x, int y)
             for (auto& thread: threads) {
                 thread.join();
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(200));
 			exit(0);
 			break;
 
@@ -319,6 +321,7 @@ void initializeApplication(void)
 		Traveler traveler;
 		traveler.segmentList.push_back(seg);
 		grid[pos.row][pos.col] = SquareType::TRAVELER;		//Use this line to change the grid
+        traveler.stillAlive = true;
 
         //    I add 0-n segments to my travelers
         unsigned int numAddSegments = segmentNumberGenerator(engine);
@@ -388,22 +391,14 @@ void moveTraveler() {
 		updateCurrentSegment(previousRow, previousCol, previousDir, newDir, addNewSegment);
 		exitFound = checkExit(newDir, 0, headIndex);
         if (exitFound) {
-			//Freeing all traveler spaces
-			for(unsigned int k = 0; k < travelerList[0].segmentList.size(); k++) {
-				int tempRow = travelerList[0].segmentList[k].row;
-				int tempCol = travelerList[0].segmentList[k].col;
-				grid[tempRow][tempCol] = SquareType::FREE_SQUARE;
-			}
-			//erasing traveler
-            travelerList.erase(travelerList.begin()); /**< This will change with multiple travelers */
-			numTravelersDone++;
+            finishAndTerminateSegment();
         }
         
         if (travelerList.size() == 0) {
             cout << "All travelers have found this exit!" << '\n';
             return;
         }
-		std::this_thread::sleep_for(std::chrono::milliseconds(200));
+		std::this_thread::sleep_for(std::chrono::microseconds(travelerSleepTime));
         moveCount++;
 	}
 
@@ -424,6 +419,21 @@ void getNewDirection() {
             possibleDirections.push_back(dir);
         }
     }
+}
+
+void finishAndTerminateSegment() {
+    //Freeing all traveler spaces
+    for(unsigned int k = 0; k < travelerList[headIndex].segmentList.size(); k++) {
+        int tempRow = travelerList[headIndex].segmentList[k].row;
+        int tempCol = travelerList[headIndex].segmentList[k].col;
+        grid[tempRow][tempCol] = SquareType::FREE_SQUARE;
+    }
+    
+    travelerList[headIndex].stillAlive = false; /* Removes the traveler from the screen */
+    numTravelersDone++;
+    numLiveThreads--;
+
+    cout << "Traveler " << headIndex << " has found the exit!" << '\n';
 }
 
 void updateCurrentSegment(int &previousRow, int &previousCol, Direction &previousDir, Direction &newDir, bool &addNewSegment) {
