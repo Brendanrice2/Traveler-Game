@@ -480,7 +480,7 @@ void checkIfSpaceIsPartition(Direction &newDir, int travIndex, bool &partitionIs
             } 
             
             //If not we move south and set checkNorth to true
-            else if (partitionList[partitionIndex].blockList[blockListSize-1].row < (numRows - 1) && (grid[partitionList[partitionIndex].blockList[blockListSize-1].row+1][partitionList[partitionIndex].blockList[blockListSize].col]) == SquareType::FREE_SQUARE) {
+            else if (partitionList[partitionIndex].blockList[blockListSize-1].row < (numRows - 1) && (grid[partitionList[partitionIndex].blockList[blockListSize-1].row+1][partitionList[partitionIndex].blockList[blockListSize-1].col]) == SquareType::FREE_SQUARE) {
                 //cout << "(E) Moving South - " << travIndex << '\n';
                 checkNorth = true;
                 southStreak = true;
@@ -511,7 +511,7 @@ void checkIfSpaceIsPartition(Direction &newDir, int travIndex, bool &partitionIs
             } 
             
             //If not we move south and set checkNorth to true
-            else if (partitionList[partitionIndex].blockList[blockListSize-1].row < (numRows - 1) && (grid[partitionList[partitionIndex].blockList[blockListSize-1].row+1][partitionList[partitionIndex].blockList[blockListSize].col]) == SquareType::FREE_SQUARE) {
+            else if (partitionList[partitionIndex].blockList[blockListSize-1].row < (numRows - 1) && (grid[partitionList[partitionIndex].blockList[blockListSize-1].row+1][partitionList[partitionIndex].blockList[blockListSize-1].col]) == SquareType::FREE_SQUARE) {
                 checkNorth = true;
                 southStreak = true;
                 movePartition(Direction::SOUTH, partitionIndex); /* Move partition */
@@ -567,7 +567,7 @@ void movePartition(Direction dir, int &partitionIndex) {
             }
         }
 
-        chrono::milliseconds timespan(10000000);
+        //chrono::milliseconds timespan(10000000);
     }
 
     else if(dir == Direction::SOUTH) {
