@@ -48,6 +48,12 @@ void movePartitionNorth(int &partitionIndex);
 void movePartitionSouth(int &partitionIndex);
 void movePartitionEast(int &partitionIndex);
 void movePartitionWest(int &partitionIndex);
+void moveVerticalPartitionToTheNorth(Direction &newDir, int &travIndex, int &partitionIndex, bool &partitionIsNotBlocked);
+void moveHorizontalPartitionToTheNorth(Direction &newDir, int &travIndex, int &partitionIndex, bool &partitionIsNotBlocked, bool &keepMoving);
+void moveVerticalPartitionToTheSouth(Direction &newDir, int &travIndex, int &partitionIndex, bool &partitionIsNotBlocked);
+void moveHorizontalPartitionToTheSouth(Direction &newDir, int &travIndex, int &partitionIndex, bool &partitionIsNotBlocked, bool &keepMoving);
+void moveHorizontalPartitionToTheEast(Direction &newDir, int &travIndex, int &partitionIndex, bool &partitionIsNotBlocked);
+void moveHorizontalPartitionToTheWest(Direction &newDir, int &travIndex, int &partitionIndex, bool &partitionIsNotBlocked);
 
 #if 0
 //-----------------------------------------------------------------------------
@@ -452,150 +458,175 @@ void checkIfSpaceIsPartition(Direction &newDir, int travIndex, bool &partitionIs
     
     if (newDir == Direction::NORTH && travelerList[travIndex].segmentList[headIndex].row > 0) {
         // Checking North Vertical
-        if (grid[travelerList[travIndex].segmentList[headIndex].row - 1][travelerList[travIndex].segmentList[headIndex].col] == SquareType::VERTICAL_PARTITION) {
-            findPartitionsIndex(newDir, partitionIndex, travIndex); /* Find partitions index */
-            
-            if (partitionList[partitionIndex].blockList[headIndex].row > 0 && (grid[partitionList[partitionIndex].blockList[headIndex].row - 1][partitionList[partitionIndex].blockList[headIndex].col]) == SquareType::FREE_SQUARE) {
-                
-                partitionIsNotBlocked = true;
-                movePartitionNorth(partitionIndex); /* Move partition */
-            } else {
-                partitionIsNotBlocked = false;
-            }
-        }
+        moveVerticalPartitionToTheNorth(newDir, travIndex, partitionIndex, partitionIsNotBlocked);
         
         // Check North horizontal
         if (grid[travelerList[travIndex].segmentList[headIndex].row - 1][travelerList[travIndex].segmentList[headIndex].col] == SquareType::HORIZONTAL_PARTITION) {
-            findPartitionsIndex(newDir, partitionIndex, travIndex); /* Find partitions index */
-            size_t lengthOfPartition = partitionList[partitionIndex].blockList.size();
-            bool keepTryingEast = true;
-            bool keepTryingWest = true;
-            
-            while (keepMoving) {
-                while (keepTryingEast) {
-                    if ((partitionList[partitionIndex].blockList[lengthOfPartition - 1].col + 1 < numCols) && ((grid[partitionList[partitionIndex].blockList[lengthOfPartition - 1].row][partitionList[partitionIndex].blockList[lengthOfPartition - 1].col + 1]) == SquareType::FREE_SQUARE)) {
-                        
-                        partitionIsNotBlocked = true;
-                        movePartitionEast(partitionIndex); /* Move partition */
-                    } else {
-                        partitionIsNotBlocked = false;
-                        keepTryingEast = false;
-                    }
-                    
-                    if (grid[travelerList[travIndex].segmentList[headIndex].row - 1][travelerList[travIndex].segmentList[headIndex].col] == SquareType::FREE_SQUARE) {
-                        keepTryingEast = false;
-                        keepTryingWest = false;
-                        keepMoving = false;
-                    }
-                }
-                
-                while (keepTryingWest) {
-                    if (partitionList[partitionIndex].blockList[headIndex].col > 0 && (grid[partitionList[partitionIndex].blockList[headIndex].row][partitionList[partitionIndex].blockList[headIndex].col - 1]) == SquareType::FREE_SQUARE) {
-                        
-                        partitionIsNotBlocked = true;
-                        movePartitionWest(partitionIndex); /* Move partition */
-                    } else {
-                        partitionIsNotBlocked = false;
-                        keepTryingWest = false;
-                        keepMoving = false;
-                    }
-                    
-                    if (grid[travelerList[travIndex].segmentList[headIndex].row - 1][travelerList[travIndex].segmentList[headIndex].col] == SquareType::FREE_SQUARE) {
-                        keepTryingEast = false;
-                        keepTryingWest = false;
-                        keepMoving = false;
-                    }
-                }
-            }
+            moveHorizontalPartitionToTheNorth(newDir, travIndex, partitionIndex, partitionIsNotBlocked, keepMoving);
         }
-        
         
     } else if (newDir == Direction::SOUTH && travelerList[travIndex].segmentList[headIndex].row < numRows - 1) {
         // Checking South Vertical
         if (grid[travelerList[travIndex].segmentList[headIndex].row + 1][travelerList[travIndex].segmentList[headIndex].col] == SquareType::VERTICAL_PARTITION) {
-            findPartitionsIndex(newDir, partitionIndex, travIndex); /* Find partitions index */
-            size_t lengthOfPartition = partitionList[partitionIndex].blockList.size();
-            
-            if ((partitionList[partitionIndex].blockList[lengthOfPartition - 1].row + 1 < numRows) && (grid[partitionList[partitionIndex].blockList[lengthOfPartition - 1].row + 1][partitionList[partitionIndex].blockList[lengthOfPartition - 1].col]) == SquareType::FREE_SQUARE) {
-                
-//                cout << "grid row: " << (partitionList[partitionIndex].blockList[headIndex].row - 1) << ", grid col: " << partitionList[partitionIndex].blockList[headIndex].col << '\n';
-                partitionIsNotBlocked = true;
-                movePartitionSouth(partitionIndex); /* Move partition */
-            } else {
-                partitionIsNotBlocked = false;
-            }
+            moveVerticalPartitionToTheSouth(newDir, travIndex, partitionIndex, partitionIsNotBlocked);
         }
         
         // Check South horizontal
         if (grid[travelerList[travIndex].segmentList[headIndex].row + 1][travelerList[travIndex].segmentList[headIndex].col] == SquareType::HORIZONTAL_PARTITION) {
-            findPartitionsIndex(newDir, partitionIndex, travIndex); /* Find partitions index */
-            size_t lengthOfPartition = partitionList[partitionIndex].blockList.size();
-            bool keepTryingEast = true;
-            bool keepTryingWest = true;
-            
-            while (keepMoving) {
-                while (keepTryingEast) {
-                    if ((partitionList[partitionIndex].blockList[lengthOfPartition - 1].col + 1 < numCols) && ((grid[partitionList[partitionIndex].blockList[lengthOfPartition - 1].row][partitionList[partitionIndex].blockList[lengthOfPartition - 1].col + 1]) == SquareType::FREE_SQUARE)) {
-                        
-                        partitionIsNotBlocked = true;
-                        movePartitionEast(partitionIndex); /* Move partition */
-                    } else {
-                        partitionIsNotBlocked = false;
-                        keepTryingEast = false;
-                    }
-                    
-                    if (grid[travelerList[travIndex].segmentList[headIndex].row + 1][travelerList[travIndex].segmentList[headIndex].col] == SquareType::FREE_SQUARE) {
-                        keepTryingEast = false;
-                        keepTryingWest = false;
-                        keepMoving = false;
-                    }
-                }
-                
-                while (keepTryingWest) {
-                    if (partitionList[partitionIndex].blockList[headIndex].col > 0 && (grid[partitionList[partitionIndex].blockList[headIndex].row][partitionList[partitionIndex].blockList[headIndex].col - 1]) == SquareType::FREE_SQUARE) {
-                        
-                        partitionIsNotBlocked = true;
-                        movePartitionWest(partitionIndex); /* Move partition */
-                    } else {
-                        partitionIsNotBlocked = false;
-                        keepTryingWest = false;
-                        keepMoving = false;
-                    }
-                    
-                    if (grid[travelerList[travIndex].segmentList[headIndex].row + 1][travelerList[travIndex].segmentList[headIndex].col] == SquareType::FREE_SQUARE) {
-                        keepTryingEast = false;
-                        keepTryingWest = false;
-                        keepMoving = false;
-                    }
-                }
-            }
+            moveHorizontalPartitionToTheSouth(newDir, travIndex, partitionIndex, partitionIsNotBlocked, keepMoving);
         }
     } else if (newDir == Direction::EAST && travelerList[travIndex].segmentList[headIndex].col < numCols - 1) {
         // Checking East Horizontal
         if (grid[travelerList[travIndex].segmentList[headIndex].row][travelerList[travIndex].segmentList[headIndex].col + 1] == SquareType::HORIZONTAL_PARTITION) {
-            findPartitionsIndex(newDir, partitionIndex, travIndex); /* Find partitions index */
-            size_t lengthOfPartition = partitionList[partitionIndex].blockList.size();
+            moveHorizontalPartitionToTheEast(newDir, travIndex, partitionIndex, partitionIsNotBlocked);
+        }
+    } else if (newDir == Direction::WEST && travelerList[travIndex].segmentList[headIndex].col > 0) {
+        // Checking West Horizontal
+        moveHorizontalPartitionToTheWest(newDir, travIndex, partitionIndex, partitionIsNotBlocked);
+    }
+}
+
+void moveVerticalPartitionToTheNorth(Direction &newDir, int &travIndex, int &partitionIndex, bool &partitionIsNotBlocked) {
+    if (grid[travelerList[travIndex].segmentList[headIndex].row - 1][travelerList[travIndex].segmentList[headIndex].col] == SquareType::VERTICAL_PARTITION) {
+        findPartitionsIndex(newDir, partitionIndex, travIndex); /* Find partitions index */
+        
+        if (partitionList[partitionIndex].blockList[headIndex].row > 0 && (grid[partitionList[partitionIndex].blockList[headIndex].row - 1][partitionList[partitionIndex].blockList[headIndex].col]) == SquareType::FREE_SQUARE) {
             
+            partitionIsNotBlocked = true;
+            movePartitionNorth(partitionIndex); /* Move partition */
+        } else {
+            partitionIsNotBlocked = false;
+        }
+    }
+}
+
+void moveHorizontalPartitionToTheNorth(Direction &newDir, int &travIndex, int &partitionIndex, bool &partitionIsNotBlocked, bool &keepMoving) {
+    findPartitionsIndex(newDir, partitionIndex, travIndex); /* Find partitions index */
+    size_t lengthOfPartition = partitionList[partitionIndex].blockList.size();
+    bool keepTryingEast = true;
+    bool keepTryingWest = true;
+    
+    while (keepMoving) { /**< This stops if the traveler is able to move to the space it wants or if the space never becomes free */
+        while (keepTryingEast) { /**< Try moving to the east */
             if ((partitionList[partitionIndex].blockList[lengthOfPartition - 1].col + 1 < numCols) && ((grid[partitionList[partitionIndex].blockList[lengthOfPartition - 1].row][partitionList[partitionIndex].blockList[lengthOfPartition - 1].col + 1]) == SquareType::FREE_SQUARE)) {
                 
-//                cout << "grid row: " << (partitionList[partitionIndex].blockList[headIndex].row - 1) << ", grid col: " << partitionList[partitionIndex].blockList[headIndex].col << '\n';
                 partitionIsNotBlocked = true;
                 movePartitionEast(partitionIndex); /* Move partition */
             } else {
                 partitionIsNotBlocked = false;
+                keepTryingEast = false;
+            }
+            
+            // This stops the movement if the space the traveler is trying to move to is free
+            if (grid[travelerList[travIndex].segmentList[headIndex].row - 1][travelerList[travIndex].segmentList[headIndex].col] == SquareType::FREE_SQUARE) {
+                keepTryingEast = false;
+                keepTryingWest = false;
+                keepMoving = false;
             }
         }
-    } else if (newDir == Direction::WEST && travelerList[travIndex].segmentList[headIndex].col > 0) {
-        // Checking West Horizontal
-        if (grid[travelerList[travIndex].segmentList[headIndex].row][travelerList[travIndex].segmentList[headIndex].col - 1] == SquareType::HORIZONTAL_PARTITION) {
-            findPartitionsIndex(newDir, partitionIndex, travIndex); /* Find partitions index */
+        
+        while (keepTryingWest) { /**< Try moving to the west */
             if (partitionList[partitionIndex].blockList[headIndex].col > 0 && (grid[partitionList[partitionIndex].blockList[headIndex].row][partitionList[partitionIndex].blockList[headIndex].col - 1]) == SquareType::FREE_SQUARE) {
                 
                 partitionIsNotBlocked = true;
                 movePartitionWest(partitionIndex); /* Move partition */
             } else {
                 partitionIsNotBlocked = false;
+                keepTryingWest = false;
+                keepMoving = false;
             }
+            
+            // This stops the movement if the space the traveler is trying to move to is free
+            if (grid[travelerList[travIndex].segmentList[headIndex].row - 1][travelerList[travIndex].segmentList[headIndex].col] == SquareType::FREE_SQUARE) {
+                keepTryingEast = false;
+                keepTryingWest = false;
+                keepMoving = false;
+            }
+        }
+    }
+}
+
+void moveVerticalPartitionToTheSouth(Direction &newDir, int &travIndex, int &partitionIndex, bool &partitionIsNotBlocked) {
+    findPartitionsIndex(newDir, partitionIndex, travIndex); /* Find partitions index */
+    size_t lengthOfPartition = partitionList[partitionIndex].blockList.size();
+    
+    if ((partitionList[partitionIndex].blockList[lengthOfPartition - 1].row + 1 < numRows) && (grid[partitionList[partitionIndex].blockList[lengthOfPartition - 1].row + 1][partitionList[partitionIndex].blockList[lengthOfPartition - 1].col]) == SquareType::FREE_SQUARE) {
+        partitionIsNotBlocked = true;
+        movePartitionSouth(partitionIndex); /* Move partition */
+    } else {
+        partitionIsNotBlocked = false;
+    }
+}
+
+void moveHorizontalPartitionToTheSouth(Direction &newDir, int &travIndex, int &partitionIndex, bool &partitionIsNotBlocked, bool &keepMoving) {
+    findPartitionsIndex(newDir, partitionIndex, travIndex); /* Find partitions index */
+    size_t lengthOfPartition = partitionList[partitionIndex].blockList.size();
+    bool keepTryingEast = true;
+    bool keepTryingWest = true;
+    
+    while (keepMoving) { /**< This stops if the traveler is able to move to the space it wants or if the space never becomes free */
+        while (keepTryingEast) { /**< Try moving to the east */
+            if ((partitionList[partitionIndex].blockList[lengthOfPartition - 1].col + 1 < numCols) && ((grid[partitionList[partitionIndex].blockList[lengthOfPartition - 1].row][partitionList[partitionIndex].blockList[lengthOfPartition - 1].col + 1]) == SquareType::FREE_SQUARE)) {
+                
+                partitionIsNotBlocked = true;
+                movePartitionEast(partitionIndex); /* Move partition */
+            } else {
+                partitionIsNotBlocked = false;
+                keepTryingEast = false;
+            }
+            
+            // This stops the movement if the space the traveler is trying to move to is free
+            if (grid[travelerList[travIndex].segmentList[headIndex].row + 1][travelerList[travIndex].segmentList[headIndex].col] == SquareType::FREE_SQUARE) {
+                keepTryingEast = false;
+                keepTryingWest = false;
+                keepMoving = false;
+            }
+        }
+        
+        while (keepTryingWest) { /**< Try moving to the west */
+            if (partitionList[partitionIndex].blockList[headIndex].col > 0 && (grid[partitionList[partitionIndex].blockList[headIndex].row][partitionList[partitionIndex].blockList[headIndex].col - 1]) == SquareType::FREE_SQUARE) {
+                
+                partitionIsNotBlocked = true;
+                movePartitionWest(partitionIndex); /* Move partition */
+            } else {
+                partitionIsNotBlocked = false;
+                keepTryingWest = false;
+                keepMoving = false;
+            }
+            
+            // This stops the movement if the space the traveler is trying to move to is free
+            if (grid[travelerList[travIndex].segmentList[headIndex].row + 1][travelerList[travIndex].segmentList[headIndex].col] == SquareType::FREE_SQUARE) {
+                keepTryingEast = false;
+                keepTryingWest = false;
+                keepMoving = false;
+            }
+        }
+    }
+}
+
+void moveHorizontalPartitionToTheEast(Direction &newDir, int &travIndex, int &partitionIndex, bool &partitionIsNotBlocked) {
+    findPartitionsIndex(newDir, partitionIndex, travIndex); /* Find partitions index */
+    size_t lengthOfPartition = partitionList[partitionIndex].blockList.size();
+    
+    if ((partitionList[partitionIndex].blockList[lengthOfPartition - 1].col + 1 < numCols) && ((grid[partitionList[partitionIndex].blockList[lengthOfPartition - 1].row][partitionList[partitionIndex].blockList[lengthOfPartition - 1].col + 1]) == SquareType::FREE_SQUARE)) {
+        
+//                cout << "grid row: " << (partitionList[partitionIndex].blockList[headIndex].row - 1) << ", grid col: " << partitionList[partitionIndex].blockList[headIndex].col << '\n';
+        partitionIsNotBlocked = true;
+        movePartitionEast(partitionIndex); /* Move partition */
+    } else {
+        partitionIsNotBlocked = false;
+    }
+}
+
+void moveHorizontalPartitionToTheWest(Direction &newDir, int &travIndex, int &partitionIndex, bool &partitionIsNotBlocked) {
+    if (grid[travelerList[travIndex].segmentList[headIndex].row][travelerList[travIndex].segmentList[headIndex].col - 1] == SquareType::HORIZONTAL_PARTITION) {
+        findPartitionsIndex(newDir, partitionIndex, travIndex); /* Find partitions index */
+        if (partitionList[partitionIndex].blockList[headIndex].col > 0 && (grid[partitionList[partitionIndex].blockList[headIndex].row][partitionList[partitionIndex].blockList[headIndex].col - 1]) == SquareType::FREE_SQUARE) {
+            
+            partitionIsNotBlocked = true;
+            movePartitionWest(partitionIndex); /* Move partition */
+        } else {
+            partitionIsNotBlocked = false;
         }
     }
 }
