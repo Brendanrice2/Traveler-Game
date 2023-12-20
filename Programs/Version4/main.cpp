@@ -36,26 +36,26 @@ Direction newDirection(Direction forbiddenDir = Direction::NUM_DIRECTIONS);
 TravelerSegment newTravelerSegment(const TravelerSegment& currentSeg, bool& canAdd);
 void generateWalls(void);
 void generatePartitions(void);
-void moveTraveler(Traveler traveler);
-void updateCurrentSegment(TravelerSegment &previousSegment, Direction &newDir, bool &addNewSegment, int travIndex);
-void getNewDirection(vector<Direction> &possibleDirections, int travIndex);
-bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex);
-bool checkExit(Direction newDir, int travelerIndex, int segmentIndex);
-void finishAndTerminateSegment(int &travIndex);
-void checkIfSpaceIsPartition(Direction &newDir, int travIndex, bool &partitionIsNotBlocked, bool &keepMoving);
-void findPartitionsIndex(Direction &newDir, int &index, int &travIndex);
-void movePartitionNorth(int &partitionIndex);
-void movePartitionSouth(int &partitionIndex);
-void movePartitionEast(int &partitionIndex);
-void movePartitionWest(int &partitionIndex);
-void moveVerticalPartitionToTheNorth(Direction &newDir, int &travIndex, int &partitionIndex, bool &partitionIsNotBlocked);
-void moveHorizontalPartitionToTheNorth(Direction &newDir, int &travIndex, int &partitionIndex, bool &partitionIsNotBlocked, bool &keepMoving);
-void moveVerticalPartitionToTheSouth(Direction &newDir, int &travIndex, int &partitionIndex, bool &partitionIsNotBlocked);
-void moveHorizontalPartitionToTheSouth(Direction &newDir, int &travIndex, int &partitionIndex, bool &partitionIsNotBlocked, bool &keepMoving);
-void moveHorizontalPartitionToTheEast(Direction &newDir, int &travIndex, int &partitionIndex, bool &partitionIsNotBlocked);
-void moveHorizontalPartitionToTheWest(Direction &newDir, int &travIndex, int &partitionIndex, bool &partitionIsNotBlocked);
-void moveVerticalPartitionToTheWest(Direction &newDir, int &travIndex, int &partitionIndex, bool &partitionIsNotBlocked, bool &keepMoving);
-void moveVerticalPartitionToTheEast(Direction &newDir, int &travIndex, int &partitionIndex, bool &partitionIsNotBlocked, bool &keepMoving);
+void moveTraveler(Traveler traveler);   // Function to move the traveler
+void updateCurrentSegment(TravelerSegment &previousSegment, Direction &newDir, bool &addNewSegment, int travIndex); // Function to update the current segment
+void getNewDirection(vector<Direction> &possibleDirections, int travIndex);     // Function to fill possibleDirection vector with possible directions
+bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex);   // Function to check if the traveler is going out of bounds
+bool checkExit(Direction newDir, int travelerIndex, int segmentIndex);      // Function to check if the traveler has reached the exit
+void finishAndTerminateSegment(int &travIndex);     // Function to finish and terminate the segment
+void checkIfSpaceIsPartition(Direction &newDir, int travIndex, bool &partitionIsNotBlocked, bool &keepMoving);      // Function to check if the space the traveler wants to move to is a partition
+void findPartitionsIndex(Direction &newDir, int &index, int &travIndex);       // Function to find the index of the partition
+void movePartitionNorth(int &partitionIndex);       // Function to move the partition north
+void movePartitionSouth(int &partitionIndex);    // Function to move the partition south
+void movePartitionEast(int &partitionIndex);    // Function to move the partition east
+void movePartitionWest(int &partitionIndex);    // Function to move the partition west
+void moveVerticalPartitionToTheNorth(Direction &newDir, int &travIndex, int &partitionIndex, bool &partitionIsNotBlocked);   // Function to move the vertical partition to the north
+void moveHorizontalPartitionToTheNorth(Direction &newDir, int &travIndex, int &partitionIndex, bool &partitionIsNotBlocked, bool &keepMoving);  // Function to move the horizontal partition to the north
+void moveVerticalPartitionToTheSouth(Direction &newDir, int &travIndex, int &partitionIndex, bool &partitionIsNotBlocked);  // Function to move the vertical partition to the south
+void moveHorizontalPartitionToTheSouth(Direction &newDir, int &travIndex, int &partitionIndex, bool &partitionIsNotBlocked, bool &keepMoving);  // Function to move the horizontal partition to the south
+void moveHorizontalPartitionToTheEast(Direction &newDir, int &travIndex, int &partitionIndex, bool &partitionIsNotBlocked); // Function to move the horizontal partition to the east
+void moveHorizontalPartitionToTheWest(Direction &newDir, int &travIndex, int &partitionIndex, bool &partitionIsNotBlocked); // Function to move the horizontal partition to the west
+void moveVerticalPartitionToTheWest(Direction &newDir, int &travIndex, int &partitionIndex, bool &partitionIsNotBlocked, bool &keepMoving); // Function to move the vertical partition to the west
+void moveVerticalPartitionToTheEast(Direction &newDir, int &travIndex, int &partitionIndex, bool &partitionIsNotBlocked, bool &keepMoving); // Function to move the vertical partition to the east
 
 #if 0
 //-----------------------------------------------------------------------------
@@ -78,10 +78,10 @@ const int headIndex = 0;
 vector<Traveler> travelerList;
 vector<SlidingPartition> partitionList;
 GridPosition    exitPos;    //    location of the exit
-vector<thread> threads; /**< The vector to contain the thread ids */
-bool stillGoing = true;
-mutex gridLock;
-vector<mutex*> travelerLocks;
+vector<thread> threads; // Vector of threads
+bool stillGoing = true; // Boolean to keep the threads going
+mutex gridLock; // Mutex for the grid
+vector<mutex*> travelerLocks;   // Vector of mutexes for each traveler
 
 //    travelers' sleep time between moves (in microseconds)
 const int MIN_SLEEP_TIME = 1000;
@@ -393,6 +393,7 @@ void initializeApplication(void)
 
 void moveTraveler(Traveler traveler) {
     
+    // Declaring variables
     bool exitFound = false;
     TravelerSegment previousSegment;
     Direction newDir;
@@ -401,63 +402,67 @@ void moveTraveler(Traveler traveler) {
     bool addNewSegment = false;
     int travIndex = traveler.index;
     bool partitionIsNotBlocked = true;
+
     // Seed the RNG
     std::random_device rd;
     std::mt19937 gen(rd());
     
+    //   Do until exit is found or the traveler is blocked
     while(stillGoing && !exitFound) {
         
         bool keepMoving = true;
         
-        // Get new direction
+        // Lock the grid
         gridLock.lock();
+
+        // Get possible directions
         getNewDirection(possibleDirections, travIndex);
+
         if (!possibleDirections.empty()) {
             std::uniform_int_distribution<int> distribution(0, (int) possibleDirections.size() - 1);
             
             newDir = possibleDirections[distribution(gen)];
             possibleDirections.clear();
             
-            /* Check if partition is in the way */
+            // Check if a partition is in the way
             checkIfSpaceIsPartition(newDir, travIndex, partitionIsNotBlocked, keepMoving);
             
+            // Check if we need to add a segment
             if (moveCount == movesToGrowNewSegment || travelerList[travIndex].segmentList.size() == 1) {
                 addNewSegment = true;
                 moveCount = 0;
             }
             
+            // Check if the traveler has reached the exit
             exitFound = checkExit(newDir, travIndex, headIndex);
+
             if (exitFound) {
+                // If so, terminate the traveler
                 finishAndTerminateSegment(travIndex);
             } else {
-                if (partitionIsNotBlocked) { /**< The next move might be where a partition is, but if the partition is blocked, then the traveler should not move there */
+                // Check if a partition is in the way of this move still
+                if (partitionIsNotBlocked) { 
+                    // If not, update the current segment
                     updateCurrentSegment(previousSegment, newDir, addNewSegment, travIndex);
                 } else {
-                    partitionIsNotBlocked = true; /**< Reset for next move */
+                    partitionIsNotBlocked = true;
                 }
             }
             moveCount++;
         }
         
+        // Unlock the grid
         gridLock.unlock();
         std::this_thread::sleep_for(std::chrono::microseconds(travelerSleepTime));
     }
 
-    /**
-     * Breakdown to move traveler:
-     * 1. Get new direction
-     * 2. Move the head of the traveler in that direction
-     * 3. Move the next segment to where the head was
-     * 4. Repeat 2-3 until the traveler reaches the exit
-    */
 }
 
-/**
-    This function checks if the new direction is where a partition is already located.
- */
+
 void checkIfSpaceIsPartition(Direction &newDir, int travIndex, bool &partitionIsNotBlocked, bool &keepMoving) {
     int partitionIndex;
 
+    // Check if the space the traveler wants to move to is a partition
     if (newDir == Direction::NORTH && travelerList[travIndex].segmentList[headIndex].row > 0) {
         // Checking North Vertical
         if (grid[travelerList[travIndex].segmentList[headIndex].row - 1][travelerList[travIndex].segmentList[headIndex].col] == SquareType::VERTICAL_PARTITION) {
@@ -504,6 +509,7 @@ void checkIfSpaceIsPartition(Direction &newDir, int travIndex, bool &partitionIs
 }
 
 void moveVerticalPartitionToTheNorth(Direction &newDir, int &travIndex, int &partitionIndex, bool &partitionIsNotBlocked) {
+    
     if (grid[travelerList[travIndex].segmentList[headIndex].row - 1][travelerList[travIndex].segmentList[headIndex].col] == SquareType::VERTICAL_PARTITION) {
         findPartitionsIndex(newDir, partitionIndex, travIndex); /* Find partitions index */
         

@@ -35,12 +35,12 @@ Direction newDirection(Direction forbiddenDir = Direction::NUM_DIRECTIONS);
 TravelerSegment newTravelerSegment(const TravelerSegment& currentSeg, bool& canAdd);
 void generateWalls(void);
 void generatePartitions(void);
-void moveTraveler(Traveler traveler);
-void updateCurrentSegment(TravelerSegment &previousSegment, Direction &newDir, bool &addNewSegment, int travIndex);
-void getNewDirection(vector<Direction> &possibleDirections, int travIndex);
-bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex);
-bool checkExit(Direction newDir, int travelerIndex, int segmentIndex);
-void finishAndTerminateSegment(int &travIndex);
+void moveTraveler(Traveler traveler);	// Function to move the traveler
+void updateCurrentSegment(TravelerSegment &previousSegment, Direction &newDir, bool &addNewSegment, int travIndex);		// Function to update the current segment
+void getNewDirection(vector<Direction> &possibleDirections, int travIndex);		// Function to fill possibleDirections vector
+bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex);	// Function to check if the traveler can move in the direction
+bool checkExit(Direction newDir, int travelerIndex, int segmentIndex);		// Function to check if the traveler has reached the exit
+void finishAndTerminateSegment(int &travIndex);		// Function to free all the traveler spaces and remove the traveler from the screen
 
 #if 0
 //-----------------------------------------------------------------------------
@@ -59,12 +59,12 @@ unsigned int numTravelers = 0;	//	initial number
 unsigned int movesToGrowNewSegment = 0;
 unsigned int numTravelersDone = 0;
 unsigned int numLiveThreads = 0;		//	the number of live traveler threads
-const int headIndex = 0;
+const int headIndex = 0;	//	constant for head index
 vector<Traveler> travelerList;
-vector<SlidingPartition> partitionList;
+vector<SlidingPartition> partitionList;	
 GridPosition	exitPos;	//	location of the exit
-vector<thread> threads; /**< The vector to contain the thread ids */
-bool stillGoing = true;
+vector<thread> threads; // vector of threads
+bool stillGoing = true;		//	Boolean to determine if the simulation is still running
 
 //	travelers' sleep time between moves (in microseconds)
 const int MIN_SLEEP_TIME = 1000;
@@ -362,6 +362,7 @@ void initializeApplication(void)
 
 void moveTraveler(Traveler traveler) {
 	
+	// Declaring variables
 	bool exitFound = false;
     TravelerSegment previousSegment;
 	Direction newDir;
@@ -370,13 +371,13 @@ void moveTraveler(Traveler traveler) {
     bool addNewSegment = false;
 	int travIndex = traveler.index;
 	
+	// While the traveler is still alive and the exit has not been found
 	while(stillGoing && !exitFound) {
-    
-
-		//cout << "first check" << endl;
         
 		// Get new direction
 		getNewDirection(possibleDirections, travIndex);
+
+		// If there are possible directions to move in
         if (!possibleDirections.empty()) {
             std::random_device rd;
             std::mt19937 gen(rd());
@@ -385,15 +386,20 @@ void moveTraveler(Traveler traveler) {
             newDir = possibleDirections[distribution(gen)];
             possibleDirections.clear();
             
+			// Add a new segment if necessary
             if (moveCount == movesToGrowNewSegment || travelerList[travIndex].segmentList.size() == 1) {
                 addNewSegment = true;
                 moveCount = 0;
             }
 
+			// Check if we've found the exit
             exitFound = checkExit(newDir, travIndex, headIndex);
+
             if (exitFound) {
+				// If we have, finish and terminate the segment
                 finishAndTerminateSegment(travIndex);
             } else {
+				// If we haven't, update the current segment
                 updateCurrentSegment(previousSegment, newDir, addNewSegment, travIndex);
             }
             
@@ -402,13 +408,6 @@ void moveTraveler(Traveler traveler) {
         }
 	}
 
-	/**
-	 * Breakdown to move traveler:
-	 * 1. Get new direction
-	 * 2. Move the head of the traveler in that direction
-	 * 3. Move the next segment to where the head was
-	 * 4. Repeat 2-3 until the traveler reaches the exit
-	*/
 }
 
 void finishAndTerminateSegment(int &travIndex) {
@@ -421,7 +420,8 @@ void finishAndTerminateSegment(int &travIndex) {
         std::this_thread::sleep_for(std::chrono::microseconds(travelerSleepTime));
     }
     
-    travelerList[travIndex].stillAlive = false; /* Removes the traveler from the screen */
+	// Removing the traveler from the screen
+    travelerList[travIndex].stillAlive = false; 
     numTravelersDone++;
     numLiveThreads--;
 
@@ -430,7 +430,7 @@ void finishAndTerminateSegment(int &travIndex) {
 
 void getNewDirection(vector<Direction> &possibleDirections, int travIndex) {
 
-	// Check North
+	// Checking if the traveler can move in each direction
 	for (Direction dir : {Direction::NORTH, Direction::SOUTH, Direction::EAST, Direction::WEST}) {
         if (boundsCheckObstacles(dir, travIndex, headIndex)) {
             possibleDirections.push_back(dir);
@@ -441,6 +441,7 @@ void getNewDirection(vector<Direction> &possibleDirections, int travIndex) {
 void updateCurrentSegment(TravelerSegment &previousSegment, Direction &newDir, bool &addNewSegment, int travIndex) {
     
     previousSegment = travelerList[travIndex].segmentList[headIndex];
+
     // Updating the head of the segment
 	if (newDir == Direction::NORTH) {
 		travelerList[travIndex].segmentList[headIndex].row -= 1;
@@ -467,6 +468,7 @@ void updateCurrentSegment(TravelerSegment &previousSegment, Direction &newDir, b
 		}
 	}
     
+	// Adding a new segment if necessary
     if (addNewSegment) {
         travelerList[travIndex].segmentList.push_back(previousSegment);
         addNewSegment = false;
@@ -474,10 +476,14 @@ void updateCurrentSegment(TravelerSegment &previousSegment, Direction &newDir, b
 }
 
 bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex){
+
+	// Declaring variables
     Direction currentDir = travelerList[travelerIndex].segmentList[segmentIndex].dir;
     int row = travelerList[travelerIndex].segmentList[segmentIndex].row;
     int col = travelerList[travelerIndex].segmentList[segmentIndex].col;
 
+
+	// Checking if the traveler can move in the direction
     if (newDir == Direction::NORTH && currentDir != Direction::SOUTH) {
         return (row > 0 && grid[row - 1][col] == SquareType::FREE_SQUARE) || (row > 0 && grid[row - 1][col] == SquareType::EXIT);
     } else if (newDir == Direction::SOUTH && currentDir != Direction::NORTH) {
@@ -492,6 +498,8 @@ bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex)
 }
 
 bool checkExit(Direction newDir, int travelerIndex, int segmentIndex) {
+
+	// Checking if the traveler has reached the exit
 
 	if (newDir == Direction::NORTH) {
 		if (travelerList[travelerIndex].segmentList[headIndex].row > 0 && grid[travelerList[travelerIndex].segmentList[headIndex].row - 1][travelerList[travelerIndex].segmentList[headIndex].col] == SquareType::EXIT) {

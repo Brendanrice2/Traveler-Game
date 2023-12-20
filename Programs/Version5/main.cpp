@@ -36,15 +36,15 @@ Direction newDirection(Direction forbiddenDir = Direction::NUM_DIRECTIONS);
 TravelerSegment newTravelerSegment(const TravelerSegment& currentSeg, bool& canAdd);
 void generateWalls(void);
 void generatePartitions(void);
-void moveTraveler(Traveler traveler);
-void updateCurrentSegment(TravelerSegment &previousSegment, Direction &newDir, bool &addNewSegment, int travIndex);
-void getNewDirection(vector<Direction> &possibleDirections, int travIndex);
-bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex);
-bool checkExit(Direction newDir, int travelerIndex, int segmentIndex);
-void finishAndTerminateSegment(int &travIndex);
-void checkIfSpaceIsPartition(Direction &newDir, int travIndex, bool &partitionIsNotBlocked, bool &keepMoving);
-void findPartitionsIndex(Direction &newDir, int &index, int &travIndex);
-void movePartitionNorth(int &partitionIndex);
+void moveTraveler(Traveler traveler);   // Function to move a traveler
+void updateCurrentSegment(TravelerSegment &previousSegment, Direction &newDir, bool &addNewSegment, int travIndex);     // Function to update the current segment of a traveler
+void getNewDirection(vector<Direction> &possibleDirections, int travIndex);     // Function to get a new direction for a traveler
+bool boundsCheckObstacles(Direction newDir, int travelerIndex, int segmentIndex);      // Function to check if a traveler is going out of bounds
+bool checkExit(Direction newDir, int travelerIndex, int segmentIndex);      // Function to check if a traveler has reached the exit
+void finishAndTerminateSegment(int &travIndex);     // Function to finish and terminate a segment of a traveler
+void checkIfSpaceIsPartition(Direction &newDir, int travIndex, bool &partitionIsNotBlocked, bool &keepMoving);  // Function to check if the space a traveler is trying to move to is a partition
+void findPartitionsIndex(Direction &newDir, int &index, int &travIndex);       // Function to find the index of a partition
+void movePartitionNorth(int &partitionIndex);   
 void movePartitionSouth(int &partitionIndex);
 void movePartitionEast(int &partitionIndex);
 void movePartitionWest(int &partitionIndex);
@@ -403,6 +403,7 @@ void initializeApplication(void)
 
 void moveTraveler(Traveler traveler) {
     
+    //Declaring variables
     bool exitFound = false;
     TravelerSegment previousSegment;
     Direction newDir;
@@ -411,49 +412,60 @@ void moveTraveler(Traveler traveler) {
     bool addNewSegment = false;
     int travIndex = traveler.index;
     bool partitionIsNotBlocked = true;
+
     // Seed the RNG
     std::random_device rd;
     std::mt19937 gen(rd());
     
+    // Go until we find the exit, or until the traveler is stuck
     while(stillGoing && !exitFound) {
         
         bool keepMoving = true;
         
+        // Lock the grid
         for (size_t x = 0; x < numRows; x++) {
             for (size_t y = 0; y < numCols; y++) {
                 gridLocks2D[x][y]->lock();
             }
         }
         
-        // Get new direction
+        // Get possible directions
         getNewDirection(possibleDirections, travIndex);
         if (!possibleDirections.empty()) {
             std::uniform_int_distribution<int> distribution(0, (int) possibleDirections.size() - 1);
             
+            // Get the new direction
             newDir = possibleDirections[distribution(gen)];
             possibleDirections.clear();
             
-            /* Check if partition is in the way */
+            // Check if the new direction is where a partition is already located
             checkIfSpaceIsPartition(newDir, travIndex, partitionIsNotBlocked, keepMoving);
             
+            // Check if we need to add a new segment
             if (moveCount == movesToGrowNewSegment || travelerList[travIndex].segmentList.size() == 1) {
                 addNewSegment = true;
                 moveCount = 0;
             }
             
+            // Check if the traveler has found the exit
             exitFound = checkExit(newDir, travIndex, headIndex);
+
             if (exitFound) {
+                // If so terminate the traveler
                 finishAndTerminateSegment(travIndex);
             } else {
-                if (partitionIsNotBlocked) { /**< The next move might be where a partition is, but if the partition is blocked, then the traveler should not move there */
+                // Make sure there isn't a partition still there
+                if (partitionIsNotBlocked) { 
+                    // If not update the current segment
                     updateCurrentSegment(previousSegment, newDir, addNewSegment, travIndex);
                 } else {
-                    partitionIsNotBlocked = true; /**< Reset for next move */
+                    partitionIsNotBlocked = true; 
                 }
             }
             moveCount++;
         }
         
+        // unlock the grid
         for (size_t x = 0; x < numRows; x++) {
             for (size_t y = 0; y < numCols; y++) {
                 gridLocks2D[x][y]->unlock();
@@ -462,13 +474,6 @@ void moveTraveler(Traveler traveler) {
         std::this_thread::sleep_for(std::chrono::microseconds(travelerSleepTime));
     }
 
-    /**
-     * Breakdown to move traveler:
-     * 1. Get new direction
-     * 2. Move the head of the traveler in that direction
-     * 3. Move the next segment to where the head was
-     * 4. Repeat 2-3 until the traveler reaches the exit
-    */
 }
 
 /**
