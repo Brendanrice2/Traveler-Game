@@ -1,5 +1,5 @@
 # 412-Final-Project
-Final group project repo, Brendan Rice, Jake Murphy
+## Final group project repo, Brendan Rice, Jake Murphy
 
 There are 5 different versions of this final project.
 
