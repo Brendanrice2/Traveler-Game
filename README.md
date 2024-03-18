@@ -27,6 +27,10 @@ final - the name of the executable we build already.
 
 1 - the number of travelers in the grid
 
+## Important Notice
+
+Almost all the work we did was within the main.cpp file, with minor changes to other surrounding files within the repo. The other files were provided for us by our Professor.
+
 8 - the number of spaces traveled before a traveler grows
 
 Each of these numbers can be adjusted.
