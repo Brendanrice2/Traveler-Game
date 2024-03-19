@@ -1,4 +1,4 @@
-# 412-Final-Project
+# Traveler Game (Operating Systems Final Project)
 ## Final group project repo, Brendan Rice, Jake Murphy
 
 There are 5 different versions of this final project.
